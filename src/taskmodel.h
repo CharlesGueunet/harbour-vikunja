@@ -19,6 +19,7 @@ struct TaskItem
     QString createdAt;  // ISO 8601, used for sorting
     int projectId;
     QVariantList labels;
+    double percentDone;
 };
 
 class TaskModel : public QAbstractListModel
@@ -35,7 +36,8 @@ public:
         DueDateRole,
         CreatedAtRole,
         ProjectIdRole,
-        LabelsRole
+        LabelsRole,
+        PercentDoneRole
     };
 
     explicit TaskModel(QObject *parent = nullptr);

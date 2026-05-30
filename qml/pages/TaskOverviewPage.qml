@@ -131,14 +131,86 @@ Page {
                 onClicked: toggleStatus()
             }
 
+            Row {
+                id: metaContainer
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.horizontalPageMargin
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Theme.paddingSmall
+                visible: (labels && labels.length > 0) || (percentDone > 0) || (dueDate !== "")
+
+                // Labels badges
+                Row {
+                    spacing: Theme.paddingSmall
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: labels && labels.length > 0
+                    Repeater {
+                        model: labels
+                        Rectangle {
+                            width: labelText.implicitWidth + Theme.paddingSmall
+                            height: labelText.implicitHeight + Theme.paddingSmall / 2
+                            radius: 4
+                            color: hexColor ? hexColor : Theme.secondaryColor
+                            opacity: 0.8
+                            Label {
+                                id: labelText
+                                text: title
+                                font.pixelSize: Theme.fontSizeTiny
+                                font.bold: true
+                                color: "white"
+                                anchors.centerIn: parent
+                            }
+                        }
+                    }
+                }
+
+                // Progress Badge
+                Rectangle {
+                    visible: percentDone > 0
+                    width: progressText.implicitWidth + Theme.paddingSmall
+                    height: progressText.implicitHeight + Theme.paddingSmall / 2
+                    radius: 4
+                    color: "transparent"
+                    border.color: Theme.highlightColor
+                    border.width: 1
+                    anchors.verticalCenter: parent.verticalCenter
+                    Label {
+                        id: progressText
+                        text: Math.round(percentDone) + "%"
+                        font.pixelSize: Theme.fontSizeTiny
+                        font.bold: true
+                        color: Theme.highlightColor
+                        anchors.centerIn: parent
+                    }
+                }
+
+                // Due Date Label
+                Label {
+                    id: dueDateLabel
+                    text: dueDate !== "" ? "📅 " + dueDate.substring(5, 10) : ""
+                    textFormat: Text.PlainText
+                    color: {
+                        if (done) return Theme.secondaryColor;
+                        var due = new Date(dueDate);
+                        var now = new Date();
+                        if (due < now) return Theme.errorColor;
+                        return Theme.highlightColor;
+                    }
+                    font.pixelSize: Theme.fontSizeTiny
+                    font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: dueDate !== ""
+                }
+            }
+
             Label {
                 id: titleLabel
                 text: title
                 textFormat: Text.PlainText
                 anchors.left: doneSwitch.right
                 anchors.leftMargin: Theme.paddingMedium
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.horizontalPageMargin
+                anchors.right: metaContainer.visible ? metaContainer.left : parent.right
+                anchors.rightMargin: Theme.paddingMedium
                 anchors.verticalCenter: parent.verticalCenter
                 color: done ? Theme.secondaryColor : Theme.primaryColor
                 font.pixelSize: Theme.fontSizeMedium

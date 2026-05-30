@@ -45,6 +45,8 @@ QVariant TaskModel::data(const QModelIndex &index, int role) const
         return item.projectId;
     case LabelsRole:
         return item.labels;
+    case PercentDoneRole:
+        return item.percentDone;
     default:
         return QVariant();
     }
@@ -61,6 +63,7 @@ QHash<int, QByteArray> TaskModel::roleNames() const
     roles[CreatedAtRole] = "createdAt";
     roles[ProjectIdRole] = "projectId";
     roles[LabelsRole] = "labels";
+    roles[PercentDoneRole] = "percentDone";
     return roles;
 }
 
@@ -85,6 +88,7 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
             item.dueDate = obj.value(QStringLiteral("due_date")).toString();
             item.createdAt = obj.value(QStringLiteral("created")).toString();
             item.projectId = obj.value(QStringLiteral("project_id")).toInt();
+            item.percentDone = obj.value(QStringLiteral("percent_done")).toDouble();
 
             QVariantList labelList;
             QJsonArray labelsArr = obj.value(QStringLiteral("labels")).toArray();
@@ -93,7 +97,11 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
                     QJsonObject labelObj = labelVal.toObject();
                     QVariantMap labelMap;
                     labelMap[QStringLiteral("title")] = labelObj.value(QStringLiteral("title")).toString();
-                    labelMap[QStringLiteral("hexColor")] = labelObj.value(QStringLiteral("hex_color")).toString();
+                    QString hexColor = labelObj.value(QStringLiteral("hex_color")).toString();
+                    if (!hexColor.isEmpty() && !hexColor.startsWith('#')) {
+                        hexColor = '#' + hexColor;
+                    }
+                    labelMap[QStringLiteral("hexColor")] = hexColor;
                     labelList.append(labelMap);
                 }
             }
@@ -150,6 +158,7 @@ QVariantMap TaskModel::getTask(int index) const
         map[QStringLiteral("done")] = item.done;
         map[QStringLiteral("dueDate")] = item.dueDate;
         map[QStringLiteral("projectId")] = item.projectId;
+        map[QStringLiteral("percentDone")] = item.percentDone;
     }
     return map;
 }
