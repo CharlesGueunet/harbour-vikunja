@@ -178,8 +178,8 @@ Page {
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     onClicked: {
-                        currentProjectId = projId;
-                        currentProjectTitle = projTitle;
+                        overviewPage.currentProjectId = projId;
+                        overviewPage.currentProjectTitle = projTitle;
                         vikunjaApi.fetchTasks(projId);
                         pageStack.pop();
                     }

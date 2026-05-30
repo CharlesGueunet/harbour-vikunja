@@ -54,7 +54,6 @@ Dialog {
             vikunjaApi.updateTask(taskId, initialDone, titleField.text, descriptionField.text, dueDate);
             taskModel.updateTaskStatus(taskId, initialDone);
         } else {
-            console.log("[AddEditTaskDialog] Submitting createTask with projId:", selectedProjectId, "title:", titleField.text)
             vikunjaApi.createTask(selectedProjectId, titleField.text, descriptionField.text, dueDate);
         }
     }
