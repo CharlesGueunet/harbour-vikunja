@@ -1,5 +1,6 @@
 #include "taskmodel.h"
 #include <QDebug>
+#include <algorithm>
 
 TaskModel::TaskModel(QObject *parent)
     : QAbstractListModel(parent)
@@ -38,6 +39,8 @@ QVariant TaskModel::data(const QModelIndex &index, int role) const
         return item.done;
     case DueDateRole:
         return item.dueDate;
+    case CreatedAtRole:
+        return item.createdAt;
     case ProjectIdRole:
         return item.projectId;
     case LabelsRole:
@@ -55,6 +58,7 @@ QHash<int, QByteArray> TaskModel::roleNames() const
     roles[DescriptionRole] = "description";
     roles[DoneRole] = "done";
     roles[DueDateRole] = "dueDate";
+    roles[CreatedAtRole] = "createdAt";
     roles[ProjectIdRole] = "projectId";
     roles[LabelsRole] = "labels";
     return roles;
@@ -79,6 +83,7 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
             item.description = obj.value(QStringLiteral("description")).toString();
             item.done = done;
             item.dueDate = obj.value(QStringLiteral("due_date")).toString();
+            item.createdAt = obj.value(QStringLiteral("created")).toString();
             item.projectId = obj.value(QStringLiteral("project_id")).toInt();
 
             QVariantList labelList;
@@ -98,6 +103,13 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
             loadedCount++;
         }
     }
+
+    // Sort by creation date descending (most recent first).
+    // createdAt is an ISO 8601 string — lexicographic order equals chronological order.
+    std::sort(m_tasks.begin(), m_tasks.end(), [](const TaskItem &a, const TaskItem &b) {
+        return a.createdAt > b.createdAt;
+    });
+
     endResetModel();
     emit countChanged();
 }

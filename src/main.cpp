@@ -8,12 +8,35 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QTranslator>
+#include <QLoggingCategory>
+#include <cstdio>
 #include "settingsmanager.h"
 #include "vikunjaapi.h"
 #include "taskmodel.h"
 
+// Custom message handler: routes all Qt log messages to stderr so they
+// appear in journald regardless of release-build optimisations.
+static void vikunjaMessageHandler(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
+{
+    Q_UNUSED(ctx)
+    const char *level = "[D]";
+    switch (type) {
+    case QtWarningMsg:  level = "[W]"; break;
+    case QtCriticalMsg: level = "[C]"; break;
+    case QtFatalMsg:    level = "[F]"; break;
+    default: break;
+    }
+    fprintf(stderr, "%s %s\n", level, qPrintable(msg));
+    fflush(stderr);
+}
+
 int main(int argc, char *argv[])
 {
+    // Enable all debug categories before QGuiApplication is constructed
+    // so that qDebug() calls are never silenced in release builds.
+    qputenv("QT_LOGGING_RULES", "*.debug=true");
+    qInstallMessageHandler(vikunjaMessageHandler);
+
     QGuiApplication *app = SailfishApp::application(argc, argv);
     app->setOrganizationName("mezmerize");
     app->setApplicationName("harbour-vikunja");

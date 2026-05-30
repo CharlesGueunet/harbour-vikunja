@@ -45,11 +45,15 @@ QNetworkRequest VikunjaApi::createRequest(const QString &endpoint, const QString
 
 void VikunjaApi::testConnection(const QString &url, const QString &token)
 {
+    qDebug() << "[VikunjaApi] testConnection url=" << url;
     setBusy(true);
     QNetworkRequest req = createRequest(QStringLiteral("api/v1/user"), url, token);
     QNetworkReply *reply = m_nam->get(req);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "[VikunjaApi] testConnection response: http=" << httpStatus
+                 << "error=" << reply->error() << reply->errorString();
         reply->deleteLater();
         setBusy(false);
 
@@ -57,7 +61,7 @@ void VikunjaApi::testConnection(const QString &url, const QString &token)
             emit connectionTested(true, QString());
         } else {
             QString errorMsg = reply->errorString();
-            if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 401) {
+            if (httpStatus == 401) {
                 errorMsg = tr("Unauthorized: Invalid API Token");
             }
             emit connectionTested(false, errorMsg);
@@ -67,23 +71,32 @@ void VikunjaApi::testConnection(const QString &url, const QString &token)
 
 void VikunjaApi::fetchProjects()
 {
+    qDebug() << "[VikunjaApi] fetchProjects";
     setBusy(true);
     QNetworkRequest req = createRequest(QStringLiteral("api/v1/projects"));
+    qDebug() << "[VikunjaApi] fetchProjects url=" << req.url().toString();
     QNetworkReply *reply = m_nam->get(req);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "[VikunjaApi] fetchProjects response: http=" << httpStatus
+                 << "error=" << reply->error();
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
-            QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+            QByteArray data = reply->readAll();
+            qDebug() << "[VikunjaApi] fetchProjects data:" << data.left(200);
+            QJsonDocument doc = QJsonDocument::fromJson(data);
             if (doc.isArray()) {
+                qDebug() << "[VikunjaApi] fetchProjects count=" << doc.array().size();
                 emit projectsReceived(doc.array());
             } else {
+                qWarning() << "[VikunjaApi] fetchProjects: response is not a JSON array";
                 emit projectsReceived(QJsonArray());
             }
         } else {
-            qWarning() << "Failed to fetch projects:" << reply->errorString();
+            qWarning() << "[VikunjaApi] fetchProjects failed:" << reply->errorString();
             emit projectsReceived(QJsonArray());
         }
     });
@@ -91,13 +104,14 @@ void VikunjaApi::fetchProjects()
 
 void VikunjaApi::fetchTasks(int projectId)
 {
+    qDebug() << "[VikunjaApi] fetchTasks projectId=" << projectId;
     setBusy(true);
-    QString endpoint = (projectId > 0) 
+    QString endpoint = (projectId > 0)
         ? (QStringLiteral("api/v1/projects/") + QString::number(projectId) + QStringLiteral("/tasks"))
         : QStringLiteral("api/v1/tasks");
 
     QNetworkRequest req = createRequest(endpoint);
-    
+
     // Use QUrlQuery to properly encode parameters
     QUrl url = req.url();
     QUrlQuery query;
@@ -107,23 +121,30 @@ void VikunjaApi::fetchTasks(int projectId)
     query.addQueryItem(QStringLiteral("filter"), QStringLiteral("done = false"));
     url.setQuery(query);
     req.setUrl(url);
-    
+    qDebug() << "[VikunjaApi] fetchTasks url=" << req.url().toString();
+
     QNetworkReply *reply = m_nam->get(req);
 
     connect(reply, &QNetworkReply::finished, this, [this, projectId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "[VikunjaApi] fetchTasks response: http=" << httpStatus
+                 << "error=" << reply->error();
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray data = reply->readAll();
+            qDebug() << "[VikunjaApi] fetchTasks data (first 200 bytes):" << data.left(200);
             QJsonDocument doc = QJsonDocument::fromJson(data);
             if (doc.isArray()) {
+                qDebug() << "[VikunjaApi] fetchTasks count=" << doc.array().size();
                 emit tasksReceived(projectId, doc.array());
             } else {
+                qWarning() << "[VikunjaApi] fetchTasks: response is not a JSON array";
                 emit tasksReceived(projectId, QJsonArray());
             }
         } else {
-            qWarning() << "Failed to fetch tasks:" << reply->errorString();
+            qWarning() << "[VikunjaApi] fetchTasks failed:" << reply->errorString();
             emit tasksReceived(projectId, QJsonArray());
         }
     });
@@ -131,16 +152,24 @@ void VikunjaApi::fetchTasks(int projectId)
 
 void VikunjaApi::createTask(int projectId, const QString &title, const QString &description, const QString &dueDate)
 {
+    qDebug() << "[VikunjaApi] createTask projectId=" << projectId
+             << "title=" << title
+             << "description=" << description
+             << "dueDate=" << dueDate;
+
     if (projectId <= 0) {
+        qWarning() << "[VikunjaApi] createTask: invalid projectId=" << projectId;
         emit taskCreated(false, tr("Invalid Project ID"));
         return;
     }
 
+    // Vikunja API: PUT /api/v1/projects/{projectId}/tasks
+    QString endpoint = QStringLiteral("api/v1/projects/") + QString::number(projectId) + QStringLiteral("/tasks");
     setBusy(true);
-    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks"));
-    
+    QNetworkRequest req = createRequest(endpoint);
+    qDebug() << "[VikunjaApi] createTask url=" << req.url().toString();
+
     QJsonObject body;
-    body.insert(QStringLiteral("project_id"), projectId);
     body.insert(QStringLiteral("title"), title);
     if (!description.isEmpty()) {
         body.insert(QStringLiteral("description"), description);
@@ -150,9 +179,16 @@ void VikunjaApi::createTask(int projectId, const QString &title, const QString &
     }
 
     QByteArray payload = QJsonDocument(body).toJson();
+    qDebug() << "[VikunjaApi] createTask payload=" << payload;
+    // Vikunja API: PUT /api/v1/projects/{projectId}/tasks
     QNetworkReply *reply = m_nam->put(req, payload);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        QByteArray responseData = reply->readAll();
+        qDebug() << "[VikunjaApi] createTask response: http=" << httpStatus
+                 << "error=" << reply->error() << reply->errorString();
+        qDebug() << "[VikunjaApi] createTask response body:" << responseData.left(400);
         reply->deleteLater();
         setBusy(false);
 
@@ -166,9 +202,14 @@ void VikunjaApi::createTask(int projectId, const QString &title, const QString &
 
 void VikunjaApi::updateTask(int taskId, bool done, const QString &title, const QString &description, const QString &dueDate)
 {
+    qDebug() << "[VikunjaApi] updateTask taskId=" << taskId
+             << "done=" << done
+             << "title=" << title
+             << "dueDate=" << dueDate;
     setBusy(true);
     QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1").arg(taskId));
-    
+    qDebug() << "[VikunjaApi] updateTask url=" << req.url().toString();
+
     QJsonObject body;
     body.insert(QStringLiteral("done"), done);
     if (!title.isEmpty()) {
@@ -181,10 +222,17 @@ void VikunjaApi::updateTask(int taskId, bool done, const QString &title, const Q
         body.insert(QStringLiteral("due_date"), dueDate);
     }
 
+    QByteArray payload = QJsonDocument(body).toJson();
+    qDebug() << "[VikunjaApi] updateTask payload=" << payload;
     // Vikunja handles task updates via POST to /api/v1/tasks/{id}
-    QNetworkReply *reply = m_nam->post(req, QJsonDocument(body).toJson());
+    QNetworkReply *reply = m_nam->post(req, payload);
 
     connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        QByteArray responseData = reply->readAll();
+        qDebug() << "[VikunjaApi] updateTask response: http=" << httpStatus
+                 << "error=" << reply->error() << reply->errorString();
+        qDebug() << "[VikunjaApi] updateTask response body:" << responseData.left(200);
         reply->deleteLater();
         setBusy(false);
 
@@ -198,11 +246,16 @@ void VikunjaApi::updateTask(int taskId, bool done, const QString &title, const Q
 
 void VikunjaApi::deleteTask(int taskId)
 {
+    qDebug() << "[VikunjaApi] deleteTask taskId=" << taskId;
     setBusy(true);
     QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1").arg(taskId));
+    qDebug() << "[VikunjaApi] deleteTask url=" << req.url().toString();
     QNetworkReply *reply = m_nam->deleteResource(req);
 
     connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        qDebug() << "[VikunjaApi] deleteTask response: http=" << httpStatus
+                 << "error=" << reply->error() << reply->errorString();
         reply->deleteLater();
         setBusy(false);
 

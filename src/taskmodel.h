@@ -16,6 +16,7 @@ struct TaskItem
     QString description;
     bool done;
     QString dueDate;
+    QString createdAt;  // ISO 8601, used for sorting
     int projectId;
     QVariantList labels;
 };
@@ -32,6 +33,7 @@ public:
         DescriptionRole,
         DoneRole,
         DueDateRole,
+        CreatedAtRole,
         ProjectIdRole,
         LabelsRole
     };

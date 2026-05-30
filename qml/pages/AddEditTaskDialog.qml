@@ -16,25 +16,27 @@ Dialog {
     property string dueDate: initialDueDate
 
     property int selectedProjectId: initialProjectId
-    property string selectedProjectTitle: qsTr("Default Project")
+    property string selectedProjectTitle: qsTr("Loading...")
 
     // Retrieve active projects list from the API
     Connections {
         target: vikunjaApi
         onProjectsReceived: {
             if (projects.length > 0) {
-                // If not editing, default to the first project
-                if (!isEdit) {
+                // Always try to match the initialProjectId first (works for both new and edit)
+                var matched = false;
+                for (var i = 0; i < projects.length; ++i) {
+                    if (projects[i].id === initialProjectId) {
+                        selectedProjectId = projects[i].id;
+                        selectedProjectTitle = projects[i].title;
+                        matched = true;
+                        break;
+                    }
+                }
+                // Only fall back to projects[0] if no match found (e.g. initialProjectId=0)
+                if (!matched) {
                     selectedProjectId = projects[0].id;
                     selectedProjectTitle = projects[0].title;
-                } else {
-                    // Match initial project
-                    for (var i = 0; i < projects.length; ++i) {
-                        if (projects[i].id === initialProjectId) {
-                            selectedProjectTitle = projects[i].title;
-                            break;
-                        }
-                    }
                 }
             }
         }

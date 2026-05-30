@@ -4,10 +4,6 @@
 <context>
     <name>AddEditTaskDialog</name>
     <message>
-        <source>Default Project</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Edit Task</source>
         <translation type="unfinished"></translation>
     </message>
@@ -53,6 +49,10 @@
     </message>
     <message>
         <source>Select Project</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Loading...</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

@@ -57,7 +57,7 @@ Page {
                 text: qsTr("Add Task")
                 onClicked: {
                     var dialog = pageStack.push(Qt.resolvedUrl("AddEditTaskDialog.qml"), {
-                        "initialProjectId": currentProjectId > 0 ? currentProjectId : 1
+                        "initialProjectId": currentProjectId
                     });
                     dialog.accepted.connect(function() {
                         vikunjaApi.fetchTasks(currentProjectId);
