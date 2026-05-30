@@ -1,0 +1,4 @@
+%dir /usr/lib/debug
+%dir /usr/lib/debug/usr
+%dir /usr/lib/debug/usr/bin
+/usr/lib/debug/usr/bin/harbour-vikunja-0.1.0-1.arm.debug

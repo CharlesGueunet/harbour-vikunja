@@ -25,6 +25,18 @@ Page {
         vikunjaApi.fetchTasks(currentProjectId);
     }
 
+    // Refresh the task list once the server confirms a new task was created.
+    // This fires after the PUT completes, not when the dialog is accepted,
+    // so the new task is guaranteed to exist on the server.
+    Connections {
+        target: vikunjaApi
+        onTaskCreated: {
+            if (success) {
+                vikunjaApi.fetchTasks(currentProjectId);
+            }
+        }
+    }
+
     SilicaListView {
         id: taskListView
         anchors.fill: parent
@@ -56,11 +68,8 @@ Page {
             MenuItem {
                 text: qsTr("Add Task")
                 onClicked: {
-                    var dialog = pageStack.push(Qt.resolvedUrl("AddEditTaskDialog.qml"), {
+                    pageStack.push(Qt.resolvedUrl("AddEditTaskDialog.qml"), {
                         "initialProjectId": currentProjectId
-                    });
-                    dialog.accepted.connect(function() {
-                        vikunjaApi.fetchTasks(currentProjectId);
                     });
                 }
             }
