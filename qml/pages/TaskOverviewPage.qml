@@ -9,7 +9,18 @@ Page {
     property int currentProjectId: 0
     property string currentProjectTitle: qsTr("All Projects")
 
+    function updateActiveProjectTitle() {
+        if (currentProjectTitle === qsTr("All Projects")) {
+            appWindow.activeProjectTitle = "Vikunja"
+        } else {
+            appWindow.activeProjectTitle = currentProjectTitle
+        }
+    }
+
+    onCurrentProjectTitleChanged: updateActiveProjectTitle()
+
     Component.onCompleted: {
+        updateActiveProjectTitle();
         // Initial fetch of tasks for the active project
         vikunjaApi.fetchTasks(currentProjectId);
     }

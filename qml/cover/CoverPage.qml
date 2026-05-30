@@ -19,7 +19,7 @@ CoverBackground {
         visible: taskModel.count > 0
 
         Label {
-            text: "Vikunja"
+            text: appWindow.activeProjectTitle
             font.bold: true
             color: Theme.primaryColor
             anchors.horizontalCenter: parent.horizontalCenter
