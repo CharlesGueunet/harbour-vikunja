@@ -1,0 +1,16 @@
+# Qt build artifacts
+Makefile
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.o
+*.a
+*.so
+*.so.*
+
+# Sailfish SDK
+.bin/
+RPMS/
+harbour-vikunja
+*.pro.user

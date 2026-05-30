@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+X-Nemo-Application-Type=silica-qt5
+Icon=harbour-vikunja
+Exec=harbour-vikunja
+Name=Vikunja
+
+[X-Sailjail]
+OrganizationName=mezmerize
+ApplicationName=harbour-vikunja
+Permissions=Internet;Secrets
