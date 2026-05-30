@@ -137,9 +137,10 @@ void VikunjaApi::createTask(int projectId, const QString &title, const QString &
     }
 
     setBusy(true);
-    QNetworkRequest req = createRequest(QStringLiteral("api/v1/projects/%1/tasks").arg(projectId));
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks"));
     
     QJsonObject body;
+    body.insert(QStringLiteral("project_id"), projectId);
     body.insert(QStringLiteral("title"), title);
     if (!description.isEmpty()) {
         body.insert(QStringLiteral("description"), description);
