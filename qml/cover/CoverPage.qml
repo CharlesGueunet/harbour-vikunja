@@ -2,35 +2,53 @@ import QtQuick 2.0
 import Sailfish.Silica 1.0
 
 CoverBackground {
-    Column {
-        anchors.centerIn: parent
-        spacing: Theme.paddingLarge
-        width: parent.width - 2 * Theme.paddingMedium
+    id: cover
 
-        Image {
-            id: coverIcon
-            source: "../../icons/cover-icon.png"
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: Theme.iconSizeLauncher
-            height: Theme.iconSizeLauncher
-            smooth: true
+    property int taskCount: taskModel ? taskModel.rowCount() : 0
+
+    Connections {
+        target: vikunjaApi
+        onTasksReceived: taskCount = taskModel.rowCount()
+        onTaskDeleted: taskCount = taskModel.rowCount()
+        onTaskCreated: taskCount = taskModel.rowCount()
+    }
+
+    CoverPlaceholder {
+        text: qsTr("All done!")
+        icon.source: "../../icons/cover-icon.png"
+        visible: cover.taskCount === 0
+    }
+
+    Column {
+        anchors {
+            fill: parent
+            margins: Theme.paddingMedium
         }
+        spacing: Theme.paddingSmall
+        visible: cover.taskCount > 0
 
         Label {
             text: "Vikunja"
-            color: Theme.primaryColor
-            font.pixelSize: Theme.fontSizeLarge
             font.bold: true
+            color: Theme.primaryColor
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
-        Label {
-            text: taskModel.rowCount() > 0 
-                ? qsTr("%n Active Task(s)", "", taskModel.rowCount()) 
-                : qsTr("All done!")
-            color: Theme.secondaryColor
-            font.pixelSize: Theme.fontSizeSmall
-            anchors.horizontalCenter: parent.horizontalCenter
+        Separator {
+            width: parent.width
+            color: Theme.highlightColor
+        }
+
+        Repeater {
+            model: Math.min(cover.taskCount, 5)
+            delegate: Label {
+                property variant taskInfo: taskModel.getTask(index)
+                width: parent.width
+                text: "• " + (taskInfo ? taskInfo.title : "")
+                color: Theme.secondaryColor
+                font.pixelSize: Theme.fontSizeExtraSmall
+                truncationMode: TruncationMode.Fade
+            }
         }
     }
 }
