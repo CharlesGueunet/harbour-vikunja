@@ -54,6 +54,7 @@ Dialog {
             vikunjaApi.updateTask(taskId, initialDone, titleField.text, descriptionField.text, dueDate);
             taskModel.updateTaskStatus(taskId, initialDone);
         } else {
+            console.log("[AddEditTaskDialog] Submitting createTask with projId:", selectedProjectId, "title:", titleField.text)
             vikunjaApi.createTask(selectedProjectId, titleField.text, descriptionField.text, dueDate);
         }
     }
@@ -126,18 +127,21 @@ Dialog {
         id: projectSelectComponent
         Page {
             allowedOrientations: defaultAllowedOrientations
+            Connections {
+                target: vikunjaApi
+                onProjectsReceived: {
+                    projModel.clear();
+                    for (var i = 0; i < projects.length; ++i) {
+                        projModel.append({ "projId": projects[i].id, "projTitle": projects[i].title });
+                    }
+                }
+            }
             SilicaListView {
                 anchors.fill: parent
                 header: PageHeader { title: qsTr("Select Project") }
                 model: ListModel {
                     id: projModel
                     Component.onCompleted: {
-                        vikunjaApi.projectsReceived.connect(function(projects) {
-                            projModel.clear();
-                            for (var i = 0; i < projects.length; ++i) {
-                                projModel.append({ "projId": projects[i].id, "projTitle": projects[i].title });
-                            }
-                        });
                         vikunjaApi.fetchProjects();
                     }
                 }

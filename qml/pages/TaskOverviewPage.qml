@@ -149,20 +149,23 @@ Page {
         id: projectSelectComponent
         Page {
             allowedOrientations: defaultAllowedOrientations
+            Connections {
+                target: vikunjaApi
+                onProjectsReceived: {
+                    projModel.clear();
+                    // First option is "All Projects"
+                    projModel.append({ "projId": 0, "projTitle": qsTr("All Projects") });
+                    for (var i = 0; i < projects.length; ++i) {
+                        projModel.append({ "projId": projects[i].id, "projTitle": projects[i].title });
+                    }
+                }
+            }
             SilicaListView {
                 anchors.fill: parent
                 header: PageHeader { title: qsTr("Select Project") }
                 model: ListModel {
                     id: projModel
                     Component.onCompleted: {
-                        vikunjaApi.projectsReceived.connect(function(projects) {
-                            projModel.clear();
-                            // First option is "All Projects"
-                            projModel.append({ "projId": 0, "projTitle": qsTr("All Projects") });
-                            for (var i = 0; i < projects.length; ++i) {
-                                projModel.append({ "projId": projects[i].id, "projTitle": projects[i].title });
-                            }
-                        });
                         vikunjaApi.fetchProjects();
                     }
                 }

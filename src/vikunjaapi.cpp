@@ -148,15 +148,23 @@ void VikunjaApi::createTask(int projectId, const QString &title, const QString &
         body.insert(QStringLiteral("due_date"), dueDate);
     }
 
-    QNetworkReply *reply = m_nam->post(req, QJsonDocument(body).toJson());
+    QByteArray payload = QJsonDocument(body).toJson();
+    qWarning() << "[VikunjaApi] CREATING TASK AT URL:" << req.url();
+    qWarning() << "[VikunjaApi] PAYLOAD:" << payload;
+
+    QNetworkReply *reply = m_nam->post(req, payload);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
+            qWarning() << "[VikunjaApi] TASK CREATED SUCCESSFULLY:" << reply->readAll();
             emit taskCreated(true, QString());
         } else {
+            QByteArray errorData = reply->readAll();
+            qWarning() << "[VikunjaApi] TASK CREATION FAILED:" << reply->errorString();
+            qWarning() << "[VikunjaApi] SERVER ERROR RESPONSE:" << errorData;
             emit taskCreated(false, reply->errorString());
         }
     });
