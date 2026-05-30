@@ -4,19 +4,10 @@ import Sailfish.Silica 1.0
 CoverBackground {
     id: cover
 
-    property int taskCount: taskModel ? taskModel.rowCount() : 0
-
-    Connections {
-        target: vikunjaApi
-        onTasksReceived: taskCount = taskModel.rowCount()
-        onTaskDeleted: taskCount = taskModel.rowCount()
-        onTaskCreated: taskCount = taskModel.rowCount()
-    }
-
     CoverPlaceholder {
         text: qsTr("All done!")
         icon.source: "../../icons/cover-icon.png"
-        visible: cover.taskCount === 0
+        visible: taskModel.count === 0
     }
 
     Column {
@@ -25,7 +16,7 @@ CoverBackground {
             margins: Theme.paddingMedium
         }
         spacing: Theme.paddingSmall
-        visible: cover.taskCount > 0
+        visible: taskModel.count > 0
 
         Label {
             text: "Vikunja"
@@ -40,7 +31,7 @@ CoverBackground {
         }
 
         Repeater {
-            model: Math.min(cover.taskCount, 5)
+            model: Math.min(taskModel.count, 5)
             delegate: Label {
                 property variant taskInfo: taskModel.getTask(index)
                 width: parent.width

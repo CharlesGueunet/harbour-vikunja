@@ -62,13 +62,6 @@
         <source>All done!</source>
         <translation>All done!</translation>
     </message>
-    <message numerus="yes">
-        <source>%n Active Task(s)</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
-        </translation>
-    </message>
 </context>
 <context>
     <name>LoginPage</name>

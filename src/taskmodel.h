@@ -23,6 +23,7 @@ struct TaskItem
 class TaskModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(int count READ count NOTIFY countChanged)
 
 public:
     enum TaskRoles {
@@ -41,6 +42,8 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
+    int count() const;
+
     Q_INVOKABLE void loadTasks(const QJsonArray &jsonArray);
     Q_INVOKABLE void updateTaskStatus(int taskId, bool done);
     Q_INVOKABLE void removeTask(int taskId);
@@ -48,6 +51,9 @@ public:
 
 private:
     QVector<TaskItem> m_tasks;
+
+signals:
+    void countChanged();
 };
 
 #endif // TASKMODEL_H

@@ -14,6 +14,11 @@ int TaskModel::rowCount(const QModelIndex &parent) const
     return m_tasks.count();
 }
 
+int TaskModel::count() const
+{
+    return m_tasks.count();
+}
+
 QVariant TaskModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid() || index.row() < 0 || index.row() >= m_tasks.count()) {
@@ -94,6 +99,7 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
         }
     }
     endResetModel();
+    emit countChanged();
 }
 
 void TaskModel::updateTaskStatus(int taskId, bool done)
@@ -115,6 +121,7 @@ void TaskModel::removeTask(int taskId)
             beginRemoveRows(QModelIndex(), i, i);
             m_tasks.removeAt(i);
             endRemoveRows();
+            emit countChanged();
             break;
         }
     }
