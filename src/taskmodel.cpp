@@ -88,7 +88,18 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
             item.dueDate = obj.value(QStringLiteral("due_date")).toString();
             item.createdAt = obj.value(QStringLiteral("created")).toString();
             item.projectId = obj.value(QStringLiteral("project_id")).toInt();
-            item.percentDone = obj.value(QStringLiteral("percent_done")).toDouble();
+            
+            double percent = obj.value(QStringLiteral("percent_done")).toDouble();
+            if (percent > 0.0) {
+                qWarning() << "[VikunjaApi] Task title:" << title 
+                           << "raw percent_done type:" << obj.value(QStringLiteral("percent_done")).type()
+                           << "value:" << obj.value(QStringLiteral("percent_done"))
+                           << "toDouble:" << percent;
+            }
+            if (percent > 0.0 && percent <= 1.0) {
+                percent *= 100.0;
+            }
+            item.percentDone = percent;
 
             QVariantList labelList;
             QJsonArray labelsArr = obj.value(QStringLiteral("labels")).toArray();

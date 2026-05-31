@@ -95,13 +95,13 @@ Dialog {
 
             ValueButton {
                 label: qsTr("Due Date")
-                value: dueDate !== "" ? dueDate.substring(0, 10) : qsTr("None")
+                value: (dueDate !== "" && dueDate.indexOf("0001-01-01") !== 0) ? dueDate.substring(0, 10) : qsTr("None")
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width - 2 * Theme.paddingLarge
                 
                 onClicked: {
                     var dialog = pageStack.push("Sailfish.Silica.DatePickerDialog", {
-                        date: dueDate !== "" ? new Date(dueDate) : new Date()
+                        date: (dueDate !== "" && dueDate.indexOf("0001-01-01") !== 0) ? new Date(dueDate) : new Date()
                     });
                     dialog.accepted.connect(function() {
                         // Vikunja expects due_date in ISO 8601 format
