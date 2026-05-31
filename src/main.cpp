@@ -61,6 +61,11 @@ int main(int argc, char *argv[])
         taskModel->loadTasks(tasks);
     });
 
+    QObject::connect(vikunjaApi, &VikunjaApi::taskReceived, [taskModel](int taskId, const QJsonObject &task) {
+        Q_UNUSED(taskId)
+        taskModel->updateTaskFromJsonObject(task);
+    });
+
     QObject::connect(vikunjaApi, &VikunjaApi::taskUpdated, [taskModel](int taskId, bool success, const QString &errorMsg) {
         Q_UNUSED(errorMsg)
         if (success) {

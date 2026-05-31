@@ -189,8 +189,11 @@ void VikunjaApi::updateTask(int taskId, bool done, const QString &title, const Q
         body.insert(QStringLiteral("due_date"), dueDate);
     }
 
+    QByteArray payload = QJsonDocument(body).toJson();
+    qWarning() << "[updateTask] POST" << req.url() << "payload:" << payload;
+
     // Vikunja handles task updates via POST to /api/v1/tasks/{id}
-    QNetworkReply *reply = m_nam->post(req, QJsonDocument(body).toJson());
+    QNetworkReply *reply = m_nam->post(req, payload);
 
     connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
         int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
@@ -198,9 +201,11 @@ void VikunjaApi::updateTask(int taskId, bool done, const QString &title, const Q
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
+            qWarning() << "[updateTask] SUCCESS http=" << httpStatus;
             emit taskUpdated(taskId, true, QString());
         } else {
-            qWarning() << "[VikunjaApi] updateTask failed: http=" << httpStatus << reply->errorString();
+            QByteArray errorBody = reply->readAll();
+            qWarning() << "[updateTask] FAILED http=" << httpStatus << reply->errorString() << "body:" << errorBody;
             emit taskUpdated(taskId, false, reply->errorString());
         }
     });
@@ -222,6 +227,34 @@ void VikunjaApi::deleteTask(int taskId)
         } else {
             qWarning() << "[VikunjaApi] deleteTask failed: http=" << httpStatus << reply->errorString();
             emit taskDeleted(taskId, false, reply->errorString());
+        }
+    });
+}
+
+void VikunjaApi::fetchTask(int taskId)
+{
+    qWarning() << "[VikunjaApi] fetchTask starting for taskId:" << taskId;
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1").arg(taskId));
+    QNetworkReply *reply = m_nam->get(req);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            qWarning() << "[VikunjaApi] fetchTask SUCCESS http=" << httpStatus << "body:" << data;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                qWarning() << "[VikunjaApi] fetchTask emitting taskReceived for taskId:" << taskId;
+                emit taskReceived(taskId, doc.object());
+            } else {
+                qWarning() << "[VikunjaApi] fetchTask: response is not a JSON object";
+            }
+        } else {
+            qWarning() << "[VikunjaApi] fetchTask failed: http=" << httpStatus << reply->errorString();
         }
     });
 }

@@ -173,3 +173,50 @@ QVariantMap TaskModel::getTask(int index) const
     }
     return map;
 }
+
+void TaskModel::updateTaskFromJsonObject(const QJsonObject &obj)
+{
+    int taskId = obj.value(QStringLiteral("id")).toInt();
+    qWarning() << "[TaskModel] updateTaskFromJsonObject called for taskId:" << taskId;
+    bool found = false;
+    for (int i = 0; i < m_tasks.count(); ++i) {
+        if (m_tasks.at(i).id == taskId) {
+            m_tasks[i].title = obj.value(QStringLiteral("title")).toString();
+            m_tasks[i].description = obj.value(QStringLiteral("description")).toString();
+            m_tasks[i].done = obj.value(QStringLiteral("done")).toBool();
+            m_tasks[i].dueDate = obj.value(QStringLiteral("due_date")).toString();
+            
+            double percent = obj.value(QStringLiteral("percent_done")).toDouble();
+            if (percent > 0.0 && percent <= 1.0) {
+                percent *= 100.0;
+            }
+            m_tasks[i].percentDone = percent;
+
+            QVariantList labelList;
+            QJsonArray labelsArr = obj.value(QStringLiteral("labels")).toArray();
+            for (const QJsonValue &labelVal : labelsArr) {
+                if (labelVal.isObject()) {
+                    QJsonObject labelObj = labelVal.toObject();
+                    QVariantMap labelMap;
+                    labelMap[QStringLiteral("title")] = labelObj.value(QStringLiteral("title")).toString();
+                    QString hexColor = labelObj.value(QStringLiteral("hex_color")).toString();
+                    if (!hexColor.isEmpty() && !hexColor.startsWith('#')) {
+                        hexColor = '#' + hexColor;
+                    }
+                    labelMap[QStringLiteral("hexColor")] = hexColor;
+                    labelList.append(labelMap);
+                }
+            }
+            m_tasks[i].labels = labelList;
+
+            QModelIndex index = createIndex(i, 0);
+            qWarning() << "[TaskModel] updateTaskFromJsonObject successfully updated task at index:" << i << "title:" << m_tasks[i].title;
+            emit dataChanged(index, index, QVector<int>() << TitleRole << DescriptionRole << DoneRole << DueDateRole << LabelsRole << PercentDoneRole);
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        qWarning() << "[TaskModel] updateTaskFromJsonObject could NOT find taskId:" << taskId << "in model!";
+    }
+}

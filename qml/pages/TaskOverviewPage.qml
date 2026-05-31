@@ -21,13 +21,16 @@ Page {
 
     Component.onCompleted: {
         updateActiveProjectTitle();
-        // Initial fetch of tasks for the active project
-        vikunjaApi.fetchTasks(currentProjectId);
+    }
+
+    onStatusChanged: {
+        if (status === PageStatus.Active) {
+            vikunjaApi.fetchTasks(currentProjectId);
+        }
     }
 
     // Refresh the task list once the server confirms a new task was created.
-    // This fires after the PUT completes, not when the dialog is accepted,
-    // so the new task is guaranteed to exist on the server.
+    // This fires after the network request completes, ensuring the server has persisted changes.
     Connections {
         target: vikunjaApi
         onTaskCreated: {

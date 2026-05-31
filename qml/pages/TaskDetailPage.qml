@@ -11,6 +11,51 @@ Page {
     // Reactively extract details from the taskModel
     property var taskData: taskModel.getTask(taskIndex)
 
+    Component.onCompleted: {
+        vikunjaApi.taskUpdated.connect(detailPage.handleTaskUpdated);
+        vikunjaApi.taskReceived.connect(detailPage.handleTaskReceived);
+        vikunjaApi.tasksReceived.connect(detailPage.handleTasksReceived);
+    }
+
+    Component.onDestruction: {
+        vikunjaApi.taskUpdated.disconnect(detailPage.handleTaskUpdated);
+        vikunjaApi.taskReceived.disconnect(detailPage.handleTaskReceived);
+        vikunjaApi.tasksReceived.disconnect(detailPage.handleTasksReceived);
+    }
+
+    function handleTaskUpdated(id, success, errorMsg) {
+        console.log("QML [TaskDetailPage] handleTaskUpdated id:", id, "success:", success);
+        if (success && id === detailPage.taskId) {
+            vikunjaApi.fetchTask(detailPage.taskId);
+        }
+    }
+
+    function handleTaskReceived(id, task) {
+        console.log("QML [TaskDetailPage] handleTaskReceived id:", id, "detailPage.taskId:", detailPage.taskId);
+        if (id === detailPage.taskId) {
+            for (var i = 0; i < taskModel.count; ++i) {
+                if (taskModel.getTask(i).id === detailPage.taskId) {
+                    console.log("QML [TaskDetailPage] found matching task in model at index:", i);
+                    detailPage.taskIndex = i;
+                    detailPage.taskData = taskModel.getTask(i);
+                    break;
+                }
+            }
+        }
+    }
+
+    function handleTasksReceived(projectId, tasks) {
+        console.log("QML [TaskDetailPage] handleTasksReceived, searching model for taskId:", detailPage.taskId);
+        for (var i = 0; i < taskModel.count; ++i) {
+            if (taskModel.getTask(i).id === detailPage.taskId) {
+                console.log("QML [TaskDetailPage] handleTasksReceived found task at index:", i);
+                detailPage.taskIndex = i;
+                detailPage.taskData = taskModel.getTask(i);
+                break;
+            }
+        }
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: contentColumn.height + Theme.paddingLarge
@@ -29,7 +74,7 @@ Page {
             MenuItem {
                 text: qsTr("Edit Task")
                 onClicked: {
-                    var dialog = pageStack.push(Qt.resolvedUrl("AddEditTaskDialog.qml"), {
+                    pageStack.push(Qt.resolvedUrl("AddEditTaskDialog.qml"), {
                         "isEdit": true,
                         "taskId": taskId,
                         "initialTitle": taskData.title,
@@ -37,10 +82,6 @@ Page {
                         "initialDueDate": taskData.dueDate,
                         "initialDone": taskData.done,
                         "initialProjectId": taskData.projectId
-                    });
-                    dialog.accepted.connect(function() {
-                        // Refresh the view's data
-                        taskData = taskModel.getTask(taskIndex);
                     });
                 }
             }

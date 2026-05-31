@@ -50,6 +50,7 @@ public:
 
     Q_INVOKABLE void loadTasks(const QJsonArray &jsonArray);
     Q_INVOKABLE void updateTaskStatus(int taskId, bool done);
+    Q_INVOKABLE void updateTaskFromJsonObject(const QJsonObject &obj);
     Q_INVOKABLE void removeTask(int taskId);
     Q_INVOKABLE QVariantMap getTask(int index) const;
 

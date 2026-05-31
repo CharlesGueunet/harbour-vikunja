@@ -23,6 +23,7 @@ public:
     Q_INVOKABLE void testConnection(const QString &url, const QString &token);
     Q_INVOKABLE void fetchProjects();
     Q_INVOKABLE void fetchTasks(int projectId = -1);
+    Q_INVOKABLE void fetchTask(int taskId);
     Q_INVOKABLE void createTask(int projectId, const QString &title, const QString &description = QString(), const QString &dueDate = QString());
     Q_INVOKABLE void updateTask(int taskId, bool done, const QString &title, const QString &description = QString(), const QString &dueDate = QString());
     Q_INVOKABLE void deleteTask(int taskId);
@@ -32,6 +33,7 @@ signals:
     void connectionTested(bool success, const QString &errorMessage);
     void projectsReceived(const QJsonArray &projects);
     void tasksReceived(int projectId, const QJsonArray &tasks);
+    void taskReceived(int taskId, const QJsonObject &task);
     void taskCreated(bool success, const QString &errorMsg);
     void taskUpdated(int taskId, bool success, const QString &errorMsg);
     void taskDeleted(int taskId, bool success, const QString &errorMsg);
