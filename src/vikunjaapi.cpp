@@ -233,28 +233,93 @@ void VikunjaApi::deleteTask(int taskId)
 
 void VikunjaApi::fetchTask(int taskId)
 {
-    qWarning() << "[VikunjaApi] fetchTask starting for taskId:" << taskId;
     setBusy(true);
     QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1").arg(taskId));
     QNetworkReply *reply = m_nam->get(req);
 
     connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
-        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
             QByteArray data = reply->readAll();
-            qWarning() << "[VikunjaApi] fetchTask SUCCESS http=" << httpStatus << "body:" << data;
             QJsonDocument doc = QJsonDocument::fromJson(data);
             if (doc.isObject()) {
-                qWarning() << "[VikunjaApi] fetchTask emitting taskReceived for taskId:" << taskId;
                 emit taskReceived(taskId, doc.object());
             } else {
                 qWarning() << "[VikunjaApi] fetchTask: response is not a JSON object";
             }
         } else {
-            qWarning() << "[VikunjaApi] fetchTask failed: http=" << httpStatus << reply->errorString();
+            qWarning() << "[VikunjaApi] fetchTask failed:" << reply->errorString();
+        }
+    });
+}
+
+void VikunjaApi::fetchLabels()
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/labels"));
+    QNetworkReply *reply = m_nam->get(req);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                emit labelsReceived(doc.array());
+            } else {
+                qWarning() << "[VikunjaApi] fetchLabels: response is not a JSON array";
+                emit labelsReceived(QJsonArray());
+            }
+        } else {
+            qWarning() << "[VikunjaApi] fetchLabels failed:" << reply->errorString();
+            emit labelsReceived(QJsonArray());
+        }
+    });
+}
+
+void VikunjaApi::associateLabel(int taskId, int labelId)
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1/labels").arg(taskId));
+    QJsonObject body;
+    body.insert(QStringLiteral("label_id"), labelId);
+    QByteArray payload = QJsonDocument(body).toJson();
+    QNetworkReply *reply = m_nam->put(req, payload);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, labelId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            emit labelAssociated(taskId, labelId, true, QString());
+        } else {
+            qWarning() << "[VikunjaApi] associateLabel failed: http=" << httpStatus << reply->errorString();
+            emit labelAssociated(taskId, labelId, false, reply->errorString());
+        }
+    });
+}
+
+void VikunjaApi::dissociateLabel(int taskId, int labelId)
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1/labels/%2").arg(taskId).arg(labelId));
+    QNetworkReply *reply = m_nam->deleteResource(req);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, labelId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            emit labelDissociated(taskId, labelId, true, QString());
+        } else {
+            qWarning() << "[VikunjaApi] dissociateLabel failed: http=" << httpStatus << reply->errorString();
+            emit labelDissociated(taskId, labelId, false, reply->errorString());
         }
     });
 }

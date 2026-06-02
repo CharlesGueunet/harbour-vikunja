@@ -27,6 +27,9 @@ public:
     Q_INVOKABLE void createTask(int projectId, const QString &title, const QString &description = QString(), const QString &dueDate = QString());
     Q_INVOKABLE void updateTask(int taskId, bool done, const QString &title, const QString &description = QString(), const QString &dueDate = QString());
     Q_INVOKABLE void deleteTask(int taskId);
+    Q_INVOKABLE void fetchLabels();
+    Q_INVOKABLE void associateLabel(int taskId, int labelId);
+    Q_INVOKABLE void dissociateLabel(int taskId, int labelId);
 
 signals:
     void busyChanged();
@@ -37,6 +40,9 @@ signals:
     void taskCreated(bool success, const QString &errorMsg);
     void taskUpdated(int taskId, bool success, const QString &errorMsg);
     void taskDeleted(int taskId, bool success, const QString &errorMsg);
+    void labelsReceived(const QJsonArray &labels);
+    void labelAssociated(int taskId, int labelId, bool success, const QString &errorMsg);
+    void labelDissociated(int taskId, int labelId, bool success, const QString &errorMsg);
 
 private:
     QNetworkRequest createRequest(const QString &endpoint, const QString &overrideUrl = QString(), const QString &overrideToken = QString());

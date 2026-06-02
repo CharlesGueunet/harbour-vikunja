@@ -107,6 +107,7 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
                 if (labelVal.isObject()) {
                     QJsonObject labelObj = labelVal.toObject();
                     QVariantMap labelMap;
+                    labelMap[QStringLiteral("id")] = labelObj.value(QStringLiteral("id")).toInt();
                     labelMap[QStringLiteral("title")] = labelObj.value(QStringLiteral("title")).toString();
                     QString hexColor = labelObj.value(QStringLiteral("hex_color")).toString();
                     if (!hexColor.isEmpty() && !hexColor.startsWith('#')) {
@@ -177,8 +178,6 @@ QVariantMap TaskModel::getTask(int index) const
 void TaskModel::updateTaskFromJsonObject(const QJsonObject &obj)
 {
     int taskId = obj.value(QStringLiteral("id")).toInt();
-    qWarning() << "[TaskModel] updateTaskFromJsonObject called for taskId:" << taskId;
-    bool found = false;
     for (int i = 0; i < m_tasks.count(); ++i) {
         if (m_tasks.at(i).id == taskId) {
             m_tasks[i].title = obj.value(QStringLiteral("title")).toString();
@@ -198,6 +197,7 @@ void TaskModel::updateTaskFromJsonObject(const QJsonObject &obj)
                 if (labelVal.isObject()) {
                     QJsonObject labelObj = labelVal.toObject();
                     QVariantMap labelMap;
+                    labelMap[QStringLiteral("id")] = labelObj.value(QStringLiteral("id")).toInt();
                     labelMap[QStringLiteral("title")] = labelObj.value(QStringLiteral("title")).toString();
                     QString hexColor = labelObj.value(QStringLiteral("hex_color")).toString();
                     if (!hexColor.isEmpty() && !hexColor.startsWith('#')) {
@@ -210,13 +210,8 @@ void TaskModel::updateTaskFromJsonObject(const QJsonObject &obj)
             m_tasks[i].labels = labelList;
 
             QModelIndex index = createIndex(i, 0);
-            qWarning() << "[TaskModel] updateTaskFromJsonObject successfully updated task at index:" << i << "title:" << m_tasks[i].title;
             emit dataChanged(index, index, QVector<int>() << TitleRole << DescriptionRole << DoneRole << DueDateRole << LabelsRole << PercentDoneRole);
-            found = true;
             break;
         }
-    }
-    if (!found) {
-        qWarning() << "[TaskModel] updateTaskFromJsonObject could NOT find taskId:" << taskId << "in model!";
     }
 }

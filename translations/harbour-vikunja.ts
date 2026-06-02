@@ -91,6 +91,21 @@
     </message>
 </context>
 <context>
+    <name>SelectLabelsPage</name>
+    <message>
+        <source>Edit Labels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No labels found</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Create labels in your Vikunja web interface</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>SilicaTaskDelegate</name>
     <message>
         <source>Mark Active</source>
@@ -157,6 +172,14 @@
     </message>
     <message>
         <source>Description</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Edit Labels</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Labels</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
