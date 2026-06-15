@@ -190,15 +190,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>No due date</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Description</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Edit Labels</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

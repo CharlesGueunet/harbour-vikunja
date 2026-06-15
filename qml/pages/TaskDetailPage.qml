@@ -168,17 +168,6 @@ Page {
                     });
                 }
             }
-
-            MenuItem {
-                text: qsTr("Edit Labels")
-                onClicked: {
-                    pageStack.push(Qt.resolvedUrl("SelectLabelsPage.qml"), {
-                        "taskId": taskId,
-                        "taskIndex": taskIndex,
-                        "taskLabels": taskData.labels || []
-                    });
-                }
-            }
         }
 
         Column {
@@ -206,13 +195,15 @@ Page {
 
             DetailItem {
                 label: qsTr("Due Date")
-                value: taskData.dueDate !== "" ? taskData.dueDate.substring(0, 10) : qsTr("No due date")
+                value: taskData.dueDate.substring(0, 10)
+                visible: taskData.dueDate !== "" && taskData.dueDate.indexOf("0001-01-01") !== 0
             }
 
             BackgroundItem {
                 id: labelsDetailItem
                 width: parent.width
                 height: Math.max(detailLabel.implicitHeight, (taskData.labels && taskData.labels.length > 0) ? labelBadgesFlow.implicitHeight : noneLabel.implicitHeight) + Theme.paddingMedium * 2
+                visible: taskData.labels && taskData.labels.length > 0
 
                 onClicked: {
                     pageStack.push(Qt.resolvedUrl("SelectLabelsPage.qml"), {
