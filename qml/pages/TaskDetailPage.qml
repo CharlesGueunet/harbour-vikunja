@@ -12,6 +12,7 @@ Page {
     property var taskData: taskModel.getTask(taskIndex)
 
     property bool commentSubmitting: false
+    property bool commentsFolded: true
 
     onStatusChanged: {
         if (status === PageStatus.Active) {
@@ -270,167 +271,203 @@ Page {
                 visible: taskData.description !== ""
             }
 
-            SectionHeader {
-                text: commentsModel.count > 0 ? qsTr("Comments (%1)").arg(commentsModel.count) : qsTr("Comments")
-            }
+            Item {
+                width: parent.width
+                height: commentsHeader.height
 
-            Label {
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("No comments yet")
-                color: Theme.secondaryColor
-                font.pixelSize: Theme.fontSizeSmall
-                horizontalAlignment: Text.AlignHCenter
-                visible: commentsModel.count === 0
-            }
+                Row {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.horizontalPageMargin
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingMedium
 
-            Repeater {
-                model: commentsModel
-                delegate: Item {
-                    width: parent.width
-                    height: commentRow.height + Theme.paddingMedium
+                    Icon {
+                        source: detailPage.commentsFolded ? "image://theme/icon-m-down" : "image://theme/icon-m-up"
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: commentsHeaderMouseArea.pressed ? Theme.highlightColor : Theme.primaryColor
+                    }
 
-                    Row {
-                        id: commentRow
-                        width: parent.width - 2 * Theme.horizontalPageMargin
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: Theme.paddingMedium
-
-                        // Avatar
-                        Rectangle {
-                            id: avatarRect
-                            width: Theme.iconSizeMedium
-                            height: Theme.iconSizeMedium
-                            radius: width / 2
-                            color: Theme.secondaryHighlightColor
-                            clip: true
-
-                            Image {
-                                id: avatarImg
-                                anchors.fill: parent
-                                source: (authorUsername !== "") ? (settingsManager.serverUrl + (settingsManager.serverUrl.endsWith("/") ? "" : "/") + "api/v1/avatar/" + authorUsername) : ""
-                                fillMode: Image.PreserveAspectCrop
-                                visible: status === Image.Ready
-                            }
-
-                            Label {
-                                anchors.centerIn: parent
-                                text: {
-                                    if (authorName) {
-                                        var parts = authorName.split(" ");
-                                        if (parts.length >= 2) {
-                                            return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
-                                        }
-                                        return authorName.substring(0, 2).toUpperCase();
-                                    } else if (authorUsername) {
-                                        return authorUsername.substring(0, 2).toUpperCase();
-                                    }
-                                    return "?";
-                                }
-                                color: Theme.primaryColor
-                                font.bold: true
-                                font.pixelSize: Theme.fontSizeSmall
-                                visible: avatarImg.status !== Image.Ready
-                            }
-                        }
-
-                        // Right side: Name row and bubble containing the comment text
-                        Column {
-                            id: rightColumn
-                            width: parent.width - avatarRect.width - commentRow.spacing
-                            spacing: Theme.paddingSmall
-
-                            Row {
-                                id: headerRow
-                                width: parent.width
-                                spacing: Theme.paddingSmall
-
-                                Label {
-                                    text: authorName !== "" ? authorName : authorUsername
-                                    color: Theme.primaryColor
-                                    font.bold: true
-                                    font.pixelSize: Theme.fontSizeSmall
-                                    truncationMode: TruncationMode.Fade
-                                    width: Math.min(implicitWidth, parent.width * 0.5)
-                                }
-
-                                Label {
-                                    text: authorName !== "" ? "@" + authorUsername : ""
-                                    color: Theme.secondaryColor
-                                    font.pixelSize: Theme.fontSizeTiny
-                                    visible: authorName !== "" && authorUsername !== ""
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                Label {
-                                    text: formatCommentDate(createdAt)
-                                    color: Theme.secondaryColor
-                                    font.pixelSize: Theme.fontSizeTiny
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            Rectangle {
-                                id: bubbleRect
-                                width: parent.width
-                                height: commentTextLabel.implicitHeight + Theme.paddingMedium * 2
-                                color: Theme.rgba(Theme.primaryColor, 0.05)
-                                border.color: Theme.rgba(Theme.primaryColor, 0.1)
-                                border.width: 1
-                                radius: 8
-
-                                Label {
-                                    id: commentTextLabel
-                                    anchors.fill: parent
-                                    anchors.margins: Theme.paddingMedium
-                                    text: commentText
-                                    color: Theme.primaryColor
-                                    font.pixelSize: Theme.fontSizeSmall
-                                    wrapMode: Text.Wrap
-                                }
-                            }
-                        }
+                    SectionHeader {
+                        id: commentsHeader
+                        text: commentsModel.count > 0 ? qsTr("Comments (%1)").arg(commentsModel.count) : qsTr("Comments")
+                        width: implicitWidth
+                        // Clear right margin/padding if any to align with the row layout
+                        anchors.verticalCenter: parent.verticalCenter
                     }
                 }
-            }
 
-            SectionHeader {
-                text: qsTr("Add Comment")
+                MouseArea {
+                    id: commentsHeaderMouseArea
+                    anchors.fill: parent
+                    onClicked: {
+                        detailPage.commentsFolded = !detailPage.commentsFolded
+                    }
+                }
             }
 
             Column {
-                width: parent.width - 2 * Theme.horizontalPageMargin
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Theme.paddingMedium
+                width: parent.width
+                visible: !detailPage.commentsFolded
+                spacing: Theme.paddingLarge
 
-                TextArea {
-                    id: newCommentTextArea
-                    width: parent.width
-                    placeholderText: qsTr("Write a comment...")
-                    label: qsTr("New Comment")
-                    wrapMode: TextEdit.Wrap
+                Label {
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("No comments yet")
+                    color: Theme.secondaryColor
+                    font.pixelSize: Theme.fontSizeSmall
+                    horizontalAlignment: Text.AlignHCenter
+                    visible: commentsModel.count === 0
                 }
 
-                Row {
-                    width: parent.width
-                    spacing: Theme.paddingMedium
-                    layoutDirection: Qt.RightToLeft
+                Repeater {
+                    model: commentsModel
+                    delegate: Item {
+                        width: parent.width
+                        height: commentRow.height + Theme.paddingMedium
 
-                    Button {
-                        id: submitButton
-                        text: qsTr("Comment")
-                        enabled: newCommentTextArea.text.replace(/^\s+|\s+$/g, '') !== "" && !commentSubmitting
-                        onClicked: {
-                            commentSubmitting = true;
-                            vikunjaApi.createComment(detailPage.taskId, newCommentTextArea.text);
+                        Row {
+                            id: commentRow
+                            width: parent.width - 2 * Theme.horizontalPageMargin
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: Theme.paddingMedium
+
+                            // Avatar
+                            Rectangle {
+                                id: avatarRect
+                                width: Theme.iconSizeMedium
+                                height: Theme.iconSizeMedium
+                                radius: width / 2
+                                color: Theme.secondaryHighlightColor
+                                clip: true
+
+                                Image {
+                                    id: avatarImg
+                                    anchors.fill: parent
+                                    source: (authorUsername !== "") ? (settingsManager.serverUrl + (settingsManager.serverUrl.endsWith("/") ? "" : "/") + "api/v1/avatar/" + authorUsername) : ""
+                                    fillMode: Image.PreserveAspectCrop
+                                    visible: status === Image.Ready
+                                }
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: {
+                                        if (authorName) {
+                                            var parts = authorName.split(" ");
+                                            if (parts.length >= 2) {
+                                                return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+                                            }
+                                            return authorName.substring(0, 2).toUpperCase();
+                                        } else if (authorUsername) {
+                                            return authorUsername.substring(0, 2).toUpperCase();
+                                        }
+                                        return "?";
+                                    }
+                                    color: Theme.primaryColor
+                                    font.bold: true
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    visible: avatarImg.status !== Image.Ready
+                                }
+                            }
+
+                            // Right side: Name row and bubble containing the comment text
+                            Column {
+                                id: rightColumn
+                                width: parent.width - avatarRect.width - commentRow.spacing
+                                spacing: Theme.paddingSmall
+
+                                Row {
+                                    id: headerRow
+                                    width: parent.width
+                                    spacing: Theme.paddingSmall
+
+                                    Label {
+                                        text: authorName !== "" ? authorName : authorUsername
+                                        color: Theme.primaryColor
+                                        font.bold: true
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        truncationMode: TruncationMode.Fade
+                                        width: Math.min(implicitWidth, parent.width * 0.5)
+                                    }
+
+                                    Label {
+                                        text: authorName !== "" ? "@" + authorUsername : ""
+                                        color: Theme.secondaryColor
+                                        font.pixelSize: Theme.fontSizeTiny
+                                        visible: authorName !== "" && authorUsername !== ""
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Label {
+                                        text: formatCommentDate(createdAt)
+                                        color: Theme.secondaryColor
+                                        font.pixelSize: Theme.fontSizeTiny
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                Rectangle {
+                                    id: bubbleRect
+                                    width: parent.width
+                                    height: commentTextLabel.implicitHeight + Theme.paddingMedium * 2
+                                    color: Theme.rgba(Theme.primaryColor, 0.05)
+                                    border.color: Theme.rgba(Theme.primaryColor, 0.1)
+                                    border.width: 1
+                                    radius: 8
+
+                                    Label {
+                                        id: commentTextLabel
+                                        anchors.fill: parent
+                                        anchors.margins: Theme.paddingMedium
+                                        text: commentText
+                                        color: Theme.primaryColor
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        wrapMode: Text.Wrap
+                                    }
+                                }
+                            }
                         }
                     }
+                }
 
-                    BusyIndicator {
-                        running: commentSubmitting
-                        visible: commentSubmitting
-                        size: BusyIndicatorSize.Small
-                        anchors.verticalCenter: submitButton.verticalCenter
+                SectionHeader {
+                    text: qsTr("Add Comment")
+                }
+
+                Column {
+                    width: parent.width - 2 * Theme.horizontalPageMargin
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Theme.paddingMedium
+
+                    TextArea {
+                        id: newCommentTextArea
+                        width: parent.width
+                        placeholderText: qsTr("Write a comment...")
+                        label: qsTr("New Comment")
+                        wrapMode: TextEdit.Wrap
+                    }
+
+                    Row {
+                        width: parent.width
+                        spacing: Theme.paddingMedium
+                        layoutDirection: Qt.RightToLeft
+
+                        Button {
+                            id: submitButton
+                            text: qsTr("Comment")
+                            enabled: newCommentTextArea.text.replace(/^\s+|\s+$/g, '') !== "" && !commentSubmitting
+                            onClicked: {
+                                commentSubmitting = true;
+                                vikunjaApi.createComment(detailPage.taskId, newCommentTextArea.text);
+                            }
+                        }
+
+                        BusyIndicator {
+                            running: commentSubmitting
+                            visible: commentSubmitting
+                            size: BusyIndicatorSize.Small
+                            anchors.verticalCenter: submitButton.verticalCenter
+                        }
                     }
                 }
             }
