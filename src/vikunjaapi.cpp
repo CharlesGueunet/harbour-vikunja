@@ -323,3 +323,54 @@ void VikunjaApi::dissociateLabel(int taskId, int labelId)
         }
     });
 }
+
+void VikunjaApi::fetchComments(int taskId)
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1/comments").arg(taskId));
+    QNetworkReply *reply = m_nam->get(req);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray data = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isArray()) {
+                emit commentsReceived(taskId, doc.array());
+            } else {
+                qWarning() << "[VikunjaApi] fetchComments: response is not a JSON array";
+                emit commentsReceived(taskId, QJsonArray());
+            }
+        } else {
+            qWarning() << "[VikunjaApi] fetchComments failed:" << reply->errorString();
+            emit commentsReceived(taskId, QJsonArray());
+        }
+    });
+}
+
+void VikunjaApi::createComment(int taskId, const QString &commentText)
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1/comments").arg(taskId));
+    
+    QJsonObject body;
+    body.insert(QStringLiteral("comment"), commentText);
+    QByteArray payload = QJsonDocument(body).toJson();
+    
+    QNetworkReply *reply = m_nam->put(req, payload);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            emit commentCreated(taskId, true, QString());
+        } else {
+            qWarning() << "[VikunjaApi] createComment failed: http=" << httpStatus << reply->errorString();
+            emit commentCreated(taskId, false, reply->errorString());
+        }
+    });
+}

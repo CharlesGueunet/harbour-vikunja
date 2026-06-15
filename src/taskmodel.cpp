@@ -41,6 +41,10 @@ QVariant TaskModel::data(const QModelIndex &index, int role) const
         return item.dueDate;
     case CreatedAtRole:
         return item.createdAt;
+    case UpdatedAtRole:
+        return item.updatedAt;
+    case PriorityRole:
+        return item.priority;
     case ProjectIdRole:
         return item.projectId;
     case LabelsRole:
@@ -61,6 +65,8 @@ QHash<int, QByteArray> TaskModel::roleNames() const
     roles[DoneRole] = "done";
     roles[DueDateRole] = "dueDate";
     roles[CreatedAtRole] = "createdAt";
+    roles[UpdatedAtRole] = "updatedAt";
+    roles[PriorityRole] = "priority";
     roles[ProjectIdRole] = "projectId";
     roles[LabelsRole] = "labels";
     roles[PercentDoneRole] = "percentDone";
@@ -87,6 +93,8 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
             item.done = done;
             item.dueDate = obj.value(QStringLiteral("due_date")).toString();
             item.createdAt = obj.value(QStringLiteral("created")).toString();
+            item.updatedAt = obj.value(QStringLiteral("updated")).toString();
+            item.priority = obj.value(QStringLiteral("priority")).toInt();
             item.projectId = obj.value(QStringLiteral("project_id")).toInt();
             
             double percent = obj.value(QStringLiteral("percent_done")).toDouble();
@@ -124,10 +132,17 @@ void TaskModel::loadTasks(const QJsonArray &jsonArray)
         }
     }
 
-    // Sort by creation date descending (most recent first).
-    // createdAt is an ISO 8601 string — lexicographic order equals chronological order.
+    // Sort tasks. Pinned tasks (priority >= 2: Medium, High, Urgent, DO NOW) go to the top.
+    // Within those groups, tasks are sorted by last updated date descending.
     std::sort(m_tasks.begin(), m_tasks.end(), [](const TaskItem &a, const TaskItem &b) {
-        return a.createdAt > b.createdAt;
+        bool aPinned = (a.priority >= 2);
+        bool bPinned = (b.priority >= 2);
+        if (aPinned != bPinned) {
+            return aPinned; // Pinned tasks come first
+        }
+        QString aTime = a.updatedAt.isEmpty() ? a.createdAt : a.updatedAt;
+        QString bTime = b.updatedAt.isEmpty() ? b.createdAt : b.updatedAt;
+        return aTime > bTime;
     });
 
     endResetModel();
@@ -171,6 +186,8 @@ QVariantMap TaskModel::getTask(int index) const
         map[QStringLiteral("dueDate")] = item.dueDate;
         map[QStringLiteral("projectId")] = item.projectId;
         map[QStringLiteral("percentDone")] = item.percentDone;
+        map[QStringLiteral("labels")] = item.labels;
+        map[QStringLiteral("priority")] = item.priority;
     }
     return map;
 }
@@ -184,6 +201,8 @@ void TaskModel::updateTaskFromJsonObject(const QJsonObject &obj)
             m_tasks[i].description = obj.value(QStringLiteral("description")).toString();
             m_tasks[i].done = obj.value(QStringLiteral("done")).toBool();
             m_tasks[i].dueDate = obj.value(QStringLiteral("due_date")).toString();
+            m_tasks[i].updatedAt = obj.value(QStringLiteral("updated")).toString();
+            m_tasks[i].priority = obj.value(QStringLiteral("priority")).toInt();
             
             double percent = obj.value(QStringLiteral("percent_done")).toDouble();
             if (percent > 0.0 && percent <= 1.0) {
@@ -210,7 +229,7 @@ void TaskModel::updateTaskFromJsonObject(const QJsonObject &obj)
             m_tasks[i].labels = labelList;
 
             QModelIndex index = createIndex(i, 0);
-            emit dataChanged(index, index, QVector<int>() << TitleRole << DescriptionRole << DoneRole << DueDateRole << LabelsRole << PercentDoneRole);
+            emit dataChanged(index, index, QVector<int>() << TitleRole << DescriptionRole << DoneRole << DueDateRole << LabelsRole << PercentDoneRole << UpdatedAtRole << PriorityRole);
             break;
         }
     }

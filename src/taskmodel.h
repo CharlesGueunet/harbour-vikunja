@@ -17,6 +17,8 @@ struct TaskItem
     bool done;
     QString dueDate;
     QString createdAt;  // ISO 8601, used for sorting
+    QString updatedAt;  // ISO 8601, used for sorting
+    int priority;
     int projectId;
     QVariantList labels;
     double percentDone;
@@ -37,7 +39,9 @@ public:
         CreatedAtRole,
         ProjectIdRole,
         LabelsRole,
-        PercentDoneRole
+        PercentDoneRole,
+        UpdatedAtRole,
+        PriorityRole
     };
 
     explicit TaskModel(QObject *parent = nullptr);

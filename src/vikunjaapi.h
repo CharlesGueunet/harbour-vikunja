@@ -30,6 +30,8 @@ public:
     Q_INVOKABLE void fetchLabels();
     Q_INVOKABLE void associateLabel(int taskId, int labelId);
     Q_INVOKABLE void dissociateLabel(int taskId, int labelId);
+    Q_INVOKABLE void fetchComments(int taskId);
+    Q_INVOKABLE void createComment(int taskId, const QString &commentText);
 
 signals:
     void busyChanged();
@@ -43,6 +45,8 @@ signals:
     void labelsReceived(const QJsonArray &labels);
     void labelAssociated(int taskId, int labelId, bool success, const QString &errorMsg);
     void labelDissociated(int taskId, int labelId, bool success, const QString &errorMsg);
+    void commentsReceived(int taskId, const QJsonArray &comments);
+    void commentCreated(int taskId, bool success, const QString &errorMsg);
 
 private:
     QNetworkRequest createRequest(const QString &endpoint, const QString &overrideUrl = QString(), const QString &overrideToken = QString());

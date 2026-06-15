@@ -36,7 +36,14 @@ CoverBackground {
                 property variant taskInfo: taskModel.getTask(index)
                 width: parent.width
                 text: "• " + (taskInfo ? taskInfo.title : "")
-                color: Theme.secondaryColor
+                color: {
+                    if (taskInfo) {
+                        if (taskInfo.done) return Theme.secondaryColor;
+                        if (taskInfo.priority >= 3) return "red";
+                        if (taskInfo.priority === 2) return "orange";
+                    }
+                    return Theme.secondaryColor;
+                }
                 font.pixelSize: Theme.fontSizeExtraSmall
                 truncationMode: TruncationMode.Fade
             }

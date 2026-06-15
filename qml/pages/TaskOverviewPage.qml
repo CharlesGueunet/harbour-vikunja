@@ -141,7 +141,7 @@ Page {
                 anchors.left: doneSwitch.right
                 anchors.leftMargin: Theme.paddingMedium
                 anchors.verticalCenter: parent.verticalCenter
-                color: done ? Theme.secondaryColor : Theme.primaryColor
+                color: done ? Theme.secondaryColor : (priority >= 3 ? "red" : (priority === 2 ? "orange" : Theme.primaryColor))
                 font.pixelSize: Theme.fontSizeMedium
                 font.strikeout: done
                 elide: Text.ElideRight

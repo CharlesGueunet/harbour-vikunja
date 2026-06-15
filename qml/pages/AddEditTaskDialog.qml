@@ -14,6 +14,8 @@ Dialog {
     property int initialProjectId: 1
 
     property string dueDate: initialDueDate
+    property int taskIndex: -1
+    property var taskData: isEdit && taskIndex >= 0 ? taskModel.getTask(taskIndex) : null
 
     property int selectedProjectId: initialProjectId
     property string selectedProjectTitle: qsTr("Loading...")
@@ -48,6 +50,19 @@ Dialog {
             titleField.text = initialTitle;
             descriptionField.text = initialDescription;
             dueDate = initialDueDate;
+            vikunjaApi.taskReceived.connect(taskDialog.handleTaskReceived);
+        }
+    }
+
+    Component.onDestruction: {
+        if (isEdit) {
+            vikunjaApi.taskReceived.disconnect(taskDialog.handleTaskReceived);
+        }
+    }
+
+    function handleTaskReceived(tId, task) {
+        if (tId === taskId) {
+            taskData = taskModel.getTask(taskIndex);
         }
     }
 
@@ -119,6 +134,22 @@ Dialog {
                 
                 onClicked: {
                     pageStack.push(projectSelectComponent);
+                }
+            }
+
+            ValueButton {
+                label: qsTr("Labels")
+                value: (isEdit && taskData && taskData.labels && taskData.labels.length > 0) ? (taskData.labels.map(function(l) { return l.title; }).join(", ")) : qsTr("None")
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 2 * Theme.paddingLarge
+                visible: isEdit
+
+                onClicked: {
+                    pageStack.push(Qt.resolvedUrl("SelectLabelsPage.qml"), {
+                        "taskId": taskId,
+                        "taskIndex": taskIndex,
+                        "taskLabels": taskData.labels || []
+                    });
                 }
             }
         }
