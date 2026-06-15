@@ -32,6 +32,8 @@ public:
     Q_INVOKABLE void dissociateLabel(int taskId, int labelId);
     Q_INVOKABLE void fetchComments(int taskId);
     Q_INVOKABLE void createComment(int taskId, const QString &commentText);
+    Q_INVOKABLE void updateComment(int taskId, int commentId, const QString &commentText);
+    Q_INVOKABLE void deleteComment(int taskId, int commentId);
 
 signals:
     void busyChanged();
@@ -47,6 +49,8 @@ signals:
     void labelDissociated(int taskId, int labelId, bool success, const QString &errorMsg);
     void commentsReceived(int taskId, const QJsonArray &comments);
     void commentCreated(int taskId, bool success, const QString &errorMsg);
+    void commentUpdated(int taskId, bool success, const QString &errorMsg);
+    void commentDeleted(int taskId, bool success, const QString &errorMsg);
 
 private:
     QNetworkRequest createRequest(const QString &endpoint, const QString &overrideUrl = QString(), const QString &overrideToken = QString());

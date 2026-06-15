@@ -374,3 +374,48 @@ void VikunjaApi::createComment(int taskId, const QString &commentText)
         }
     });
 }
+
+void VikunjaApi::updateComment(int taskId, int commentId, const QString &commentText)
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1/comments/%2").arg(taskId).arg(commentId));
+    
+    QJsonObject body;
+    body.insert(QStringLiteral("comment"), commentText);
+    QByteArray payload = QJsonDocument(body).toJson();
+    
+    QNetworkReply *reply = m_nam->post(req, payload);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            emit commentUpdated(taskId, true, QString());
+        } else {
+            qWarning() << "[VikunjaApi] updateComment failed: http=" << httpStatus << reply->errorString();
+            emit commentUpdated(taskId, false, reply->errorString());
+        }
+    });
+}
+
+void VikunjaApi::deleteComment(int taskId, int commentId)
+{
+    setBusy(true);
+    QNetworkRequest req = createRequest(QStringLiteral("api/v1/tasks/%1/comments/%2").arg(taskId).arg(commentId));
+    QNetworkReply *reply = m_nam->deleteResource(req);
+
+    connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
+        int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        reply->deleteLater();
+        setBusy(false);
+
+        if (reply->error() == QNetworkReply::NoError) {
+            emit commentDeleted(taskId, true, QString());
+        } else {
+            qWarning() << "[VikunjaApi] deleteComment failed: http=" << httpStatus << reply->errorString();
+            emit commentDeleted(taskId, false, reply->errorString());
+        }
+    });
+}

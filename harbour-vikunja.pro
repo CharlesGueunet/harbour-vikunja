@@ -28,6 +28,7 @@ DISTFILES += qml/harbour-vikunja.qml \
     qml/pages/TaskDetailPage.qml \
     qml/pages/AddEditTaskDialog.qml \
     qml/pages/SelectLabelsPage.qml \
+    qml/pages/EditCommentDialog.qml \
     icons/cover-icon.png \
     rpm/harbour-vikunja.spec \
     translations/*.ts \

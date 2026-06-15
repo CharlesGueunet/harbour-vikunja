@@ -29,6 +29,8 @@ Page {
         vikunjaApi.labelDissociated.connect(detailPage.handleLabelUpdated);
         vikunjaApi.commentsReceived.connect(detailPage.handleCommentsReceived);
         vikunjaApi.commentCreated.connect(detailPage.handleCommentCreated);
+        vikunjaApi.commentUpdated.connect(detailPage.handleCommentUpdated);
+        vikunjaApi.commentDeleted.connect(detailPage.handleCommentDeleted);
     }
 
     Component.onDestruction: {
@@ -39,6 +41,8 @@ Page {
         vikunjaApi.labelDissociated.disconnect(detailPage.handleLabelUpdated);
         vikunjaApi.commentsReceived.disconnect(detailPage.handleCommentsReceived);
         vikunjaApi.commentCreated.disconnect(detailPage.handleCommentCreated);
+        vikunjaApi.commentUpdated.disconnect(detailPage.handleCommentUpdated);
+        vikunjaApi.commentDeleted.disconnect(detailPage.handleCommentDeleted);
     }
 
     function handleTaskUpdated(id, success, errorMsg) {
@@ -102,6 +106,22 @@ Page {
             commentSubmitting = false;
             if (success) {
                 newCommentTextArea.text = "";
+                vikunjaApi.fetchComments(detailPage.taskId);
+            }
+        }
+    }
+
+    function handleCommentUpdated(tId, success, errorMsg) {
+        if (tId === detailPage.taskId) {
+            if (success) {
+                vikunjaApi.fetchComments(detailPage.taskId);
+            }
+        }
+    }
+
+    function handleCommentDeleted(tId, success, errorMsg) {
+        if (tId === detailPage.taskId) {
+            if (success) {
                 vikunjaApi.fetchComments(detailPage.taskId);
             }
         }
@@ -322,9 +342,32 @@ Page {
 
                 Repeater {
                     model: commentsModel
-                    delegate: Item {
+                    delegate: ListItem {
+                        id: commentItem
                         width: parent.width
-                        height: commentRow.height + Theme.paddingMedium
+                        contentHeight: commentRow.height + Theme.paddingMedium
+
+                        menu: ContextMenu {
+                            MenuItem {
+                                text: qsTr("Edit Comment")
+                                onClicked: {
+                                    var dialog = pageStack.push(Qt.resolvedUrl("EditCommentDialog.qml"), {
+                                        "initialCommentText": commentText
+                                    });
+                                    dialog.accepted.connect(function() {
+                                        vikunjaApi.updateComment(detailPage.taskId, commentId, dialog.commentText);
+                                    });
+                                }
+                            }
+                            MenuItem {
+                                text: qsTr("Delete Comment")
+                                onClicked: {
+                                    commentItem.remorseAction(qsTr("Deleting comment"), function() {
+                                        vikunjaApi.deleteComment(detailPage.taskId, commentId);
+                                    });
+                                }
+                            }
+                        }
 
                         Row {
                             id: commentRow
