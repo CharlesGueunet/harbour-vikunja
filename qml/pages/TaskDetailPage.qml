@@ -134,6 +134,32 @@ Page {
         return datePart + " " + timePart;
     }
 
+    function formatDescription(desc) {
+        if (!desc || desc === "") return "";
+        console.log("[DEBUG Description] Raw:", JSON.stringify(desc));
+        var res = desc;
+
+        // 1. Handle HTML checklist format (Tiptap / Vikunja editor HTML output)
+        // Clean up full Vikunja HTML checklist items (label + input + div + p wrapper) to keep on a single line
+        res = res.replace(/<li\s+data-checked="false"[^>]*>\s*<label>\s*<input[^>]*>\s*<span>\s*<\/span>\s*<\/label>\s*<div>\s*<p>([\s\S]*?)<\/p>\s*<\/div>\s*<\/li>/gi, "[ ] $1<br/>");
+        res = res.replace(/<li\s+data-checked="true"[^>]*>\s*<label>\s*<input[^>]*>\s*<span>\s*<\/span>\s*<\/label>\s*<div>\s*<p>([\s\S]*?)<\/p>\s*<\/div>\s*<\/li>/gi, "[x] $1<br/>");
+
+        // Fallback for simpler/older HTML checklists
+        res = res.replace(/<li\s+data-checked="false"[^>]*>\s*(?:<p>)?([\s\S]*?)(?:<\/p>)?\s*<\/li>/gi, "[ ] $1<br/>");
+        res = res.replace(/<li\s+data-checked="true"[^>]*>\s*(?:<p>)?([\s\S]*?)(?:<\/p>)?\s*<\/li>/gi, "[x] $1<br/>");
+
+        // Remove taskList wrapping tags to avoid bullets and list margins
+        res = res.replace(/<ul\s+data-type="taskList"[^>]*>/gi, "<div>");
+        res = res.replace(/<\/ul>/gi, "</div>");
+
+        // 2. Handle Markdown checklist format
+        res = res.replace(/^(\s*)[-*+]\s+\[ \]\s*/gm, "$1[ ] ");
+        res = res.replace(/^(\s*)[-*+]\s+\[[xX]\]\s*/gm, "$1[x] ");
+
+        console.log("[DEBUG Description] Formatted:", JSON.stringify(res));
+        return res;
+    }
+
     ListModel {
         id: commentsModel
     }
@@ -275,7 +301,8 @@ Page {
             Label {
                 width: parent.width - 2 * Theme.paddingLarge
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: taskData.description
+                textFormat: Text.MarkdownText
+                text: formatDescription(taskData.description)
                 color: Theme.primaryColor
                 font.pixelSize: Theme.fontSizeMedium
                 wrapMode: Text.Wrap
