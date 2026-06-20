@@ -6,7 +6,7 @@ CoverBackground {
 
     CoverPlaceholder {
         text: qsTr("All done!")
-        icon.source: "../../icons/cover-icon.png"
+        icon.source: "../../icons/sfos-icon.png"
         visible: taskModel.count === 0
     }
 

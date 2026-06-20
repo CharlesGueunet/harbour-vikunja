@@ -30,6 +30,7 @@ DISTFILES += qml/harbour-vikunja.qml \
     qml/pages/SelectLabelsPage.qml \
     qml/pages/EditCommentDialog.qml \
     icons/cover-icon.png \
+    icons/sfos-icon.png \
     rpm/harbour-vikunja.spec \
     translations/*.ts \
     harbour-vikunja.desktop
