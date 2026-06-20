@@ -48,7 +48,7 @@ Dialog {
         vikunjaApi.fetchProjects();
         if (isEdit) {
             titleField.text = initialTitle;
-            descriptionField.text = initialDescription;
+            descriptionField.text = htmlToMarkdown(initialDescription);
             dueDate = initialDueDate;
             vikunjaApi.taskReceived.connect(taskDialog.handleTaskReceived);
         }
@@ -66,12 +66,180 @@ Dialog {
         }
     }
 
+    function htmlToMarkdown(html) {
+        if (!html || html === "") return "";
+        var res = html;
+
+        // 1. Convert checklist items (specific to Vikunja Tiptap HTML editor format)
+        res = res.replace(/<li\s+data-checked="false"[^>]*>\s*<label>\s*<input[^>]*>\s*<span>\s*<\/span>\s*<\/label>\s*<div>\s*<p>([\s\S]*?)<\/p>\s*<\/div>\s*<\/li>/gi, "- [ ] $1\n");
+        res = res.replace(/<li\s+data-checked="true"[^>]*>\s*<label>\s*<input[^>]*>\s*<span>\s*<\/span>\s*<\/label>\s*<div>\s*<p>([\s\S]*?)<\/p>\s*<\/div>\s*<\/li>/gi, "- [x] $1\n");
+
+        // Fallback for HTML checklists without label/input wrapper
+        res = res.replace(/<li\s+data-checked="false"[^>]*>\s*(?:<p>)?([\s\S]*?)(?:<\/p>)?\s*<\/li>/gi, "- [ ] $1\n");
+        res = res.replace(/<li\s+data-checked="true"[^>]*>\s*(?:<p>)?([\s\S]*?)(?:<\/p>)?\s*<\/li>/gi, "- [x] $1\n");
+
+        // 2. Convert standard list items
+        res = res.replace(/<li>([\s\S]*?)<\/li>/gi, "- $1\n");
+        res = res.replace(/<ul[^>]*>/gi, "");
+        res = res.replace(/<\/ul>/gi, "\n");
+        res = res.replace(/<ol[^>]*>/gi, "");
+        res = res.replace(/<\/ol>/gi, "\n");
+
+        // 3. Convert headers
+        res = res.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, "# $1\n\n");
+        res = res.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, "## $1\n\n");
+        res = res.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, "### $1\n\n");
+        res = res.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, "#### $1\n\n");
+
+        // 4. Convert paragraphs & line breaks
+        res = res.replace(/<p>\s*<\/p>/gi, "\n");
+        res = res.replace(/<p>([\s\S]*?)<\/p>/gi, "$1\n\n");
+        res = res.replace(/<br\s*\/?>/gi, "\n");
+
+        // 5. Convert formatting tags
+        res = res.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, "**$1**");
+        res = res.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, "**$1**");
+        res = res.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, "*$1*");
+        res = res.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, "*$1*");
+        res = res.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, "`$1`");
+
+        // 6. Convert links
+        res = res.replace(/<a\s+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi, "[$2]($1)");
+
+        // 7. Clean up extra spaces/newlines
+        res = res.replace(/\n{3,}/g, "\n\n");
+        res = res.trim();
+
+        return res;
+    }
+
+    function markdownToHtml(md) {
+        if (!md || md === "") return "";
+        var lines = md.split(/\r?\n/);
+        var html = "";
+        var inTaskList = false;
+        var inNormalList = false;
+
+        function generateTaskId() {
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            var result = '';
+            for (var i = 0; i < 8; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        // Helper to convert inline markdown to HTML (bold, italic, links, etc.)
+        function convertInline(text) {
+            var inline = text;
+            // Bold
+            inline = inline.replace(/\*\*([\s\S]*?)\*\*/g, "<strong>$1</strong>");
+            inline = inline.replace(/__([\s\S]*?)__/g, "<strong>$1</strong>");
+            // Italic
+            inline = inline.replace(/\*([\s\S]*?)\*/g, "<em>$1</em>");
+            inline = inline.replace(/_([\s\S]*?)_/g, "<em>$1</em>");
+            // Code inline
+            inline = inline.replace(/`([\s\S]*?)`/g, "<code>$1</code>");
+            // Links
+            inline = inline.replace(/\[([\s\S]*?)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+            return inline;
+        }
+
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            
+            // Check for checklist items: e.g., "- [ ] task" or "* [x] task"
+            var taskMatch = line.match(/^\s*[-*+]\s+\[([ xX])\]\s*(.*)$/);
+            if (taskMatch) {
+                // If we were in a normal list, close it first
+                if (inNormalList) {
+                    html += "</ul>";
+                    inNormalList = false;
+                }
+                // If not in task list, open it
+                if (!inTaskList) {
+                    html += '<ul data-type="taskList">';
+                    inTaskList = true;
+                }
+                var checked = (taskMatch[1].toLowerCase() === 'x');
+                var text = convertInline(taskMatch[2]);
+                var taskId = generateTaskId();
+                if (checked) {
+                    html += '<li data-checked="true" data-task-id="' + taskId + '" data-type="taskItem">' +
+                            '<label><input type="checkbox" checked="checked"><span></span></label>' +
+                            '<div><p>' + text + '</p></div></li>';
+                } else {
+                    html += '<li data-checked="false" data-task-id="' + taskId + '" data-type="taskItem">' +
+                            '<label><input type="checkbox"><span></span></label>' +
+                            '<div><p>' + text + '</p></div></li>';
+                }
+                continue;
+            }
+
+            // Check for standard bullet list items: e.g., "- item" or "* item"
+            var listMatch = line.match(/^\s*[-*+]\s+(.*)$/);
+            if (listMatch) {
+                // If we were in a task list, close it first
+                if (inTaskList) {
+                    html += "</ul>";
+                    inTaskList = false;
+                }
+                // If not in a normal list, open it
+                if (!inNormalList) {
+                    html += "<ul>";
+                    inNormalList = true;
+                }
+                var text = convertInline(listMatch[1]);
+                html += "<li>" + text + "</li>";
+                continue;
+            }
+
+            // Close any open lists if the line is not a list item
+            if (inTaskList) {
+                html += "</ul>";
+                inTaskList = false;
+            }
+            if (inNormalList) {
+                html += "</ul>";
+                inNormalList = false;
+            }
+
+            // Check for headers
+            var headerMatch = line.match(/^(#{1,6})\s+(.*)$/);
+            if (headerMatch) {
+                var level = headerMatch[1].length;
+                var text = convertInline(headerMatch[2]);
+                html += "<h" + level + ">" + text + "</h" + level + ">";
+                continue;
+            }
+
+            // Paragraph or empty line
+            var trimmed = line.trim();
+            if (trimmed === "") {
+                html += "<p></p>";
+            } else {
+                html += "<p>" + convertInline(line) + "</p>";
+            }
+        }
+
+        // Close any remaining open lists
+        if (inTaskList) {
+            html += "</ul>";
+        }
+        if (inNormalList) {
+            html += "</ul>";
+        }
+
+        return html;
+    }
+
     onAccepted: {
+        var htmlDescription = markdownToHtml(descriptionField.text);
         if (isEdit) {
-            vikunjaApi.updateTask(taskId, initialDone, titleField.text, descriptionField.text, dueDate);
+            vikunjaApi.updateTask(taskId, initialDone, titleField.text, htmlDescription, dueDate);
             taskModel.updateTaskStatus(taskId, initialDone);
         } else {
-            vikunjaApi.createTask(selectedProjectId, titleField.text, descriptionField.text, dueDate);
+            vikunjaApi.createTask(selectedProjectId, titleField.text, htmlDescription, dueDate);
         }
     }
 
