@@ -11,13 +11,16 @@ Page {
 
     function updateActiveProjectTitle() {
         if (currentProjectTitle === qsTr("All Projects")) {
-            appWindow.activeProjectTitle = "Vikunja"
+            appWindow.activeProjectTitle = "TODO"
+            appWindow.activeProjectId = 0
         } else {
             appWindow.activeProjectTitle = currentProjectTitle
+            appWindow.activeProjectId = currentProjectId
         }
     }
 
     onCurrentProjectTitleChanged: updateActiveProjectTitle()
+    onCurrentProjectIdChanged: updateActiveProjectTitle()
 
     Component.onCompleted: {
         updateActiveProjectTitle();

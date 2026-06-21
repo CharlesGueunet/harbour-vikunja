@@ -4,10 +4,49 @@ import Sailfish.Silica 1.0
 CoverBackground {
     id: cover
 
+    ListModel {
+        id: coverTaskModel
+    }
+    function updateCoverTasks() {
+        coverTaskModel.clear();
+        var activeProjId = appWindow.activeProjectId;
+        var count = 0;
+        for (var i = 0; i < taskModel.count; ++i) {
+            var task = taskModel.getTask(i);
+            if (task && !task.done) {
+                if (activeProjId === 0 || task.projectId === activeProjId) {
+                    coverTaskModel.append({
+                        "title": task.title,
+                        "priority": task.priority,
+                        "done": task.done
+                    });
+                    count++;
+                    if (count >= 5) {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    Connections {
+        target: taskModel
+        onDataChanged: cover.updateCoverTasks()
+        onModelReset: cover.updateCoverTasks()
+        onRowsInserted: cover.updateCoverTasks()
+        onRowsRemoved: cover.updateCoverTasks()
+    }
+
+    Connections {
+        target: appWindow
+        onActiveProjectIdChanged: cover.updateCoverTasks()
+    }
+
+    Component.onCompleted: updateCoverTasks()
+
     CoverPlaceholder {
         text: qsTr("All done!")
         icon.source: "../../icons/sfos-icon.png"
-        visible: taskModel.count === 0
+        visible: coverTaskModel.count === 0
     }
 
     Column {
@@ -16,7 +55,7 @@ CoverBackground {
             margins: Theme.paddingMedium
         }
         spacing: Theme.paddingSmall
-        visible: taskModel.count > 0
+        visible: coverTaskModel.count > 0
 
         Label {
             text: appWindow.activeProjectTitle
@@ -31,17 +70,14 @@ CoverBackground {
         }
 
         Repeater {
-            model: Math.min(taskModel.count, 5)
+            model: coverTaskModel
             delegate: Label {
-                property variant taskInfo: taskModel.getTask(index)
                 width: parent.width
-                text: "• " + (taskInfo ? taskInfo.title : "")
+                text: "• " + title
                 color: {
-                    if (taskInfo) {
-                        if (taskInfo.done) return Theme.secondaryColor;
-                        if (taskInfo.priority >= 3) return "red";
-                        if (taskInfo.priority === 2) return "orange";
-                    }
+                    if (done) return Theme.secondaryColor;
+                    if (priority >= 3) return "red";
+                    if (priority === 2) return "orange";
                     return Theme.secondaryColor;
                 }
                 font.pixelSize: Theme.fontSizeExtraSmall
