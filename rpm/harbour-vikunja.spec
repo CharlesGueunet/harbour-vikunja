@@ -3,7 +3,7 @@
 Name:       harbour-vikunja
 
 Summary:    Vikunja Client for Sailfish OS
-Version:    0.1.0
+Version:    0.9.0
 Release:    1
 Group:      Applications/Office
 License:    GPLv3
