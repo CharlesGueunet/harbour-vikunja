@@ -59,6 +59,30 @@
         <source>Labels</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Failed to create task</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to update task</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Server request timed out. Please check your network connection.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Task title cannot be empty</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Saving...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Task was not accepted by the server</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>CoverPage</name>

@@ -160,14 +160,26 @@ void VikunjaApi::createTask(int projectId, const QString &title, const QString &
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        QByteArray data = reply->readAll();
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                QJsonObject taskObj = doc.object();
+                int newTaskId = taskObj.value(QStringLiteral("id")).toInt();
+                emit taskReceived(newTaskId, taskObj);
+            }
             emit taskCreated(true, QString());
         } else {
-            qWarning() << "[VikunjaApi] createTask failed: http=" << httpStatus << reply->errorString();
-            emit taskCreated(false, reply->errorString());
+            QString errorMsg = reply->errorString();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject() && doc.object().contains(QStringLiteral("message"))) {
+                errorMsg = doc.object().value(QStringLiteral("message")).toString();
+            }
+            qWarning() << "[VikunjaApi] createTask failed: http=" << httpStatus << errorMsg << "body:" << data;
+            emit taskCreated(false, errorMsg);
         }
     });
 }
@@ -197,16 +209,25 @@ void VikunjaApi::updateTask(int taskId, bool done, const QString &title, const Q
 
     connect(reply, &QNetworkReply::finished, this, [this, taskId, reply]() {
         int httpStatus = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        QByteArray data = reply->readAll();
         reply->deleteLater();
         setBusy(false);
 
         if (reply->error() == QNetworkReply::NoError) {
             qWarning() << "[updateTask] SUCCESS http=" << httpStatus;
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject()) {
+                emit taskReceived(taskId, doc.object());
+            }
             emit taskUpdated(taskId, true, QString());
         } else {
-            QByteArray errorBody = reply->readAll();
-            qWarning() << "[updateTask] FAILED http=" << httpStatus << reply->errorString() << "body:" << errorBody;
-            emit taskUpdated(taskId, false, reply->errorString());
+            QString errorMsg = reply->errorString();
+            QJsonDocument doc = QJsonDocument::fromJson(data);
+            if (doc.isObject() && doc.object().contains(QStringLiteral("message"))) {
+                errorMsg = doc.object().value(QStringLiteral("message")).toString();
+            }
+            qWarning() << "[updateTask] FAILED http=" << httpStatus << errorMsg << "body:" << data;
+            emit taskUpdated(taskId, false, errorMsg);
         }
     });
 }

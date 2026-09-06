@@ -20,7 +20,42 @@ Dialog {
     property int selectedProjectId: initialProjectId
     property string selectedProjectTitle: qsTr("Loading...")
 
-    // Retrieve active projects list from the API
+    property bool isSaving: false
+    property bool isServerConfirmed: false
+    property string errorMessage: ""
+
+    canAccept: isServerConfirmed
+
+    onAcceptBlocked: {
+        if (!isSaving && titleField.text.trim().length > 0) {
+            saveTask();
+        }
+    }
+
+    onRejected: {
+        if (isSaving) {
+            isSaving = false;
+            saveTimeoutTimer.stop();
+        }
+        if (!isEdit && !isServerConfirmed) {
+            if (titleField.text.trim().length > 0 || descriptionField.text.trim().length > 0) {
+                if (typeof appWindow !== "undefined" && appWindow) {
+                    appWindow.taskDraft = {
+                        "title": titleField.text,
+                        "description": descriptionField.text,
+                        "dueDate": dueDate,
+                        "projectId": selectedProjectId
+                    };
+                }
+            } else {
+                if (typeof appWindow !== "undefined" && appWindow) {
+                    appWindow.taskDraft = null;
+                }
+            }
+        }
+    }
+
+    // Retrieve active projects list from the API and listen to task creation / update status
     Connections {
         target: vikunjaApi
         onProjectsReceived: {
@@ -42,6 +77,35 @@ Dialog {
                 }
             }
         }
+        onTaskCreated: {
+            if (!isEdit && isSaving) {
+                saveTimeoutTimer.stop();
+                if (success) {
+                    isSaving = false;
+                    isServerConfirmed = true;
+                    if (typeof appWindow !== "undefined" && appWindow && appWindow.taskDraft) {
+                        appWindow.taskDraft = null;
+                    }
+                    taskDialog.accept();
+                } else {
+                    isSaving = false;
+                    errorMessage = errorMsg ? errorMsg : qsTr("Failed to create task");
+                }
+            }
+        }
+        onTaskUpdated: {
+            if (isEdit && isSaving && taskId === taskDialog.taskId) {
+                saveTimeoutTimer.stop();
+                if (success) {
+                    isSaving = false;
+                    isServerConfirmed = true;
+                    taskDialog.accept();
+                } else {
+                    isSaving = false;
+                    errorMessage = errorMsg ? errorMsg : qsTr("Failed to update task");
+                }
+            }
+        }
     }
 
     Component.onCompleted: {
@@ -51,10 +115,19 @@ Dialog {
             descriptionField.text = htmlToMarkdown(initialDescription);
             dueDate = initialDueDate;
             vikunjaApi.taskReceived.connect(taskDialog.handleTaskReceived);
+        } else if (typeof appWindow !== "undefined" && appWindow && appWindow.taskDraft) {
+            if (appWindow.taskDraft.title) titleField.text = appWindow.taskDraft.title;
+            if (appWindow.taskDraft.description) descriptionField.text = appWindow.taskDraft.description;
+            if (appWindow.taskDraft.dueDate) dueDate = appWindow.taskDraft.dueDate;
+            if (appWindow.taskDraft.projectId) {
+                initialProjectId = appWindow.taskDraft.projectId;
+                selectedProjectId = appWindow.taskDraft.projectId;
+            }
         }
     }
 
     Component.onDestruction: {
+        saveTimeoutTimer.stop();
         if (isEdit) {
             vikunjaApi.taskReceived.disconnect(taskDialog.handleTaskReceived);
         }
@@ -234,12 +307,66 @@ Dialog {
     }
 
     onAccepted: {
+        // Handled asynchronously in saveTask() via vikunjaApi confirmation
+    }
+
+    Timer {
+        id: saveTimeoutTimer
+        interval: 30000
+        repeat: false
+        onTriggered: {
+            if (isSaving) {
+                isSaving = false;
+                errorMessage = qsTr("Server request timed out. Please check your network connection.");
+            }
+        }
+    }
+
+    function saveTask() {
+        if (isSaving) return;
+        var trimmedTitle = titleField.text.trim();
+        if (trimmedTitle.length === 0) {
+            errorMessage = qsTr("Task title cannot be empty");
+            return;
+        }
+
+        titleField.focus = false;
+        descriptionField.focus = false;
+
+        errorMessage = "";
+        isSaving = true;
+        saveTimeoutTimer.restart();
+
         var htmlDescription = markdownToHtml(descriptionField.text);
         if (isEdit) {
-            vikunjaApi.updateTask(taskId, initialDone, titleField.text, htmlDescription, dueDate);
-            taskModel.updateTaskStatus(taskId, initialDone);
+            vikunjaApi.updateTask(taskId, initialDone, trimmedTitle, htmlDescription, dueDate);
         } else {
-            vikunjaApi.createTask(selectedProjectId, titleField.text, htmlDescription, dueDate);
+            vikunjaApi.createTask(selectedProjectId, trimmedTitle, htmlDescription, dueDate);
+        }
+    }
+
+    Item {
+        id: dialogProxy
+        width: taskDialog.width
+        property bool canAccept: !taskDialog.isSaving && titleField.text.trim().length > 0
+        property bool isPortrait: taskDialog.isPortrait
+        property int orientation: taskDialog.orientation
+        property int _depth: taskDialog._depth
+        property int _navigationPending: taskDialog._navigationPending
+        property bool backNavigation: taskDialog.backNavigation
+        property var background: taskDialog.background
+        property int status: taskDialog.status
+        property var _dialogHeader: null
+
+        function accept() {
+            taskDialog.saveTask();
+        }
+        function reject() {
+            if (taskDialog.isSaving) {
+                taskDialog.isSaving = false;
+                saveTimeoutTimer.stop();
+            }
+            taskDialog.reject();
         }
     }
 
@@ -253,12 +380,59 @@ Dialog {
             spacing: Theme.paddingLarge
 
             DialogHeader {
+                id: dialogHeaderItem
+                dialog: dialogProxy
                 title: isEdit ? qsTr("Edit Task") : qsTr("New Task")
-                acceptText: isEdit ? qsTr("Save") : qsTr("Create")
+                acceptText: isSaving ? qsTr("Saving...") : (isEdit ? qsTr("Save") : qsTr("Create"))
+                extraContent.children: [
+                    BusyIndicator {
+                        running: isSaving
+                        size: BusyIndicatorSize.Small
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                ]
+                Component.onCompleted: {
+                    taskDialog._dialogHeader = dialogHeaderItem
+                }
+            }
+
+            Rectangle {
+                id: errorBanner
+                visible: errorMessage !== ""
+                width: parent.width - 2 * Theme.paddingLarge
+                anchors.horizontalCenter: parent.horizontalCenter
+                color: Theme.rgba(Theme.highlightColor, 0.15)
+                radius: Theme.paddingSmall
+                height: visible ? (errorColumn.height + 2 * Theme.paddingMedium) : 0
+
+                Column {
+                    id: errorColumn
+                    width: parent.width - 2 * Theme.paddingMedium
+                    anchors.centerIn: parent
+                    spacing: Theme.paddingSmall
+
+                    Label {
+                        width: parent.width
+                        text: qsTr("Task was not accepted by the server")
+                        color: Theme.highlightColor
+                        font.pixelSize: Theme.fontSizeSmall
+                        font.bold: true
+                        wrapMode: Text.Wrap
+                    }
+
+                    Label {
+                        width: parent.width
+                        text: errorMessage
+                        color: Theme.primaryColor
+                        font.pixelSize: Theme.fontSizeExtraSmall
+                        wrapMode: Text.Wrap
+                    }
+                }
             }
 
             TextField {
                 id: titleField
+                enabled: !isSaving
                 width: parent.width - 2 * Theme.paddingLarge
                 anchors.horizontalCenter: parent.horizontalCenter
                 label: qsTr("Task Title")
@@ -270,6 +444,7 @@ Dialog {
 
             TextArea {
                 id: descriptionField
+                enabled: !isSaving
                 width: parent.width - 2 * Theme.paddingLarge
                 anchors.horizontalCenter: parent.horizontalCenter
                 label: qsTr("Description")
@@ -281,6 +456,7 @@ Dialog {
                 value: (dueDate !== "" && dueDate.indexOf("0001-01-01") !== 0) ? dueDate.substring(0, 10) : qsTr("None")
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width - 2 * Theme.paddingLarge
+                enabled: !isSaving
                 
                 onClicked: {
                     var dialog = pageStack.push("Sailfish.Silica.DatePickerDialog", {
@@ -298,7 +474,7 @@ Dialog {
                 value: selectedProjectTitle
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width - 2 * Theme.paddingLarge
-                enabled: !isEdit // Only allow changing project on creation for simplicity
+                enabled: !isEdit && !isSaving
                 
                 onClicked: {
                     pageStack.push(projectSelectComponent);
@@ -311,6 +487,7 @@ Dialog {
                 anchors.horizontalCenter: parent.horizontalCenter
                 width: parent.width - 2 * Theme.paddingLarge
                 visible: isEdit
+                enabled: !isSaving
 
                 onClicked: {
                     pageStack.push(Qt.resolvedUrl("SelectLabelsPage.qml"), {

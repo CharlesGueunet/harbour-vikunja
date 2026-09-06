@@ -5,6 +5,7 @@ ApplicationWindow {
     id: appWindow
     property string activeProjectTitle: "Vikunja"
     property int activeProjectId: 0
+    property var taskDraft: null
     initialPage: (settingsManager.apiToken === "" || settingsManager.serverUrl === "")
                  ? Qt.resolvedUrl("pages/LoginPage.qml")
                  : Qt.resolvedUrl("pages/TaskOverviewPage.qml")
